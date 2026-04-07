@@ -1,4 +1,5 @@
-# AI Smart Food Ordering and Diet Recommendation System for Telangana
+# [AI Smart Food Ordering and Diet Recommendation System for Telangana](https://web-production-d28ec.up.railway.app)
+
 
 A production-oriented Flask web application that combines food delivery workflows with AI-driven diet and order-history recommendations for restaurants across Telangana.
 
