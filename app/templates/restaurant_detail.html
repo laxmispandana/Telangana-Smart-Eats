@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}{{ restaurant.name }}{% endblock %}
+{% block content %}
+<section class="detail-hero">
+    <img src="{{ restaurant.image_url }}" alt="{{ restaurant.name }}" class="detail-cover">
+    <div class="detail-copy">
+        <p class="eyebrow">{{ restaurant.city }} • {{ restaurant.area }}</p>
+        <h1>{{ restaurant.name }}</h1>
+        <p>{{ restaurant.description }}</p>
+        <div class="detail-metrics">
+            <span>⭐ {{ restaurant.rating }}</span>
+            <span>{{ restaurant.cuisine }}</span>
+            <span>{{ restaurant.delivery_time }} mins</span>
+            <span>{{ restaurant.category|title }}</span>
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="section-heading">
+        <div>
+            <p class="eyebrow">Menu</p>
+            <h2>Fresh picks from {{ restaurant.name }}</h2>
+        </div>
+    </div>
+    <div class="menu-grid">
+        {% for item in menu_items %}
+            <article class="menu-card">
+                <img src="{{ item.image_url }}" alt="{{ item.name }}">
+                <div class="menu-card-body">
+                    <div class="menu-topline">
+                        <span class="tag">{{ item.food_type|title }}</span>
+                        {% if item.healthy_badge %}<span class="healthy-pill">Healthy</span>{% endif %}
+                    </div>
+                    <h3>{{ item.name }}</h3>
+                    <p>{{ item.description }}</p>
+                    <div class="nutrition-row">
+                        <span>{{ item.category|title }}</span>
+                        {% if item.calories %}<span>{{ item.calories }} kcal</span>{% endif %}
+                    </div>
+                    <div class="menu-footer">
+                        <strong>Rs. {{ "%.0f"|format(item.price) }}</strong>
+                        <form method="post" action="{{ url_for('main.add_to_cart') }}">
+                            <input type="hidden" name="item_id" value="{{ item.id }}">
+                            <button class="btn btn-mini" type="submit">Add to cart</button>
+                        </form>
+                    </div>
+                </div>
+            </article>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

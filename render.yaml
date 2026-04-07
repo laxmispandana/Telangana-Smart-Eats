@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: telangana-smart-eats
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn run:app
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: telangana-smart-eats-db
+          property: connectionString
+      - key: APP_BASE_URL
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_PUBLISHABLE_KEY
+        sync: false
+      - key: SPOONACULAR_API_KEY
+        sync: false
+
+databases:
+  - name: telangana-smart-eats-db

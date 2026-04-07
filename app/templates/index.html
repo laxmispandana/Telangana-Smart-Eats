@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Telangana Smart Eats{% endblock %}
+{% block content %}
+<section class="hero">
+    <div class="hero-copy">
+        <div class="hero-visual-grid">
+            <article class="hero-visual-card hero-visual-large">
+                <img src="https://images.pexels.com/photos/776538/pexels-photo-776538.jpeg?auto=compress&cs=tinysrgb&w=1200" alt="Restaurant interior">
+                <div class="hero-visual-caption">
+                    <span class="tag">Restaurants</span>
+                    <h2>Discover places across Telangana</h2>
+                </div>
+            </article>
+            <article class="hero-visual-card">
+                <img src="https://images.pexels.com/photos/9738983/pexels-photo-9738983.jpeg?auto=compress&cs=tinysrgb&w=1200" alt="Biryani dish">
+                <div class="hero-visual-caption">
+                    <span class="tag">Food</span>
+                    <h3>Popular local dishes</h3>
+                </div>
+            </article>
+            <article class="hero-visual-card">
+                <img src="https://images.pexels.com/photos/15795823/pexels-photo-15795823.jpeg?auto=compress&cs=tinysrgb&w=1200" alt="Healthy meal">
+                <div class="hero-visual-caption">
+                    <span class="tag">Diet</span>
+                    <h3>Healthy recommendations</h3>
+                </div>
+            </article>
+        </div>
+        <div class="hero-actions">
+            <a href="#restaurants" class="btn btn-primary">Start ordering</a>
+            <a href="{{ url_for('main.diet') }}" class="btn btn-secondary">Plan my diet</a>
+        </div>
+        <div class="hero-stats">
+            <div><strong>{{ restaurants|length }}</strong><span>Restaurants seeded</span></div>
+            <div><strong>50+</strong><span>Dynamic menu items</span></div>
+            <div><strong>AI</strong><span>History-based recommendations</span></div>
+        </div>
+    </div>
+    <div class="hero-panel">
+        <div class="panel-card glass">
+            <img src="https://images.pexels.com/photos/825661/pexels-photo-825661.jpeg?auto=compress&cs=tinysrgb&w=1200" alt="Food delivery spread" class="hero-feature-image">
+            <span class="panel-label">Live food and restaurant imagery</span>
+            <h3>Built for Hyderabad to Khammam</h3>
+            <p>Browse restaurant photos, menu images, and nearby locations in one ordering flow.</p>
+        </div>
+        <div id="map" class="map-card"></div>
+    </div>
+</section>
+
+<section class="section" id="restaurants">
+    <div class="section-heading">
+        <div>
+            <p class="eyebrow">Discover</p>
+            <h2>Restaurants near you</h2>
+        </div>
+        <p class="section-copy">Use GPS to reorder listings by distance, then narrow the feed with food type, health-first meals, and ratings.</p>
+    </div>
+
+    <div class="filters">
+        <input type="search" id="search-input" placeholder="Search restaurants or cities">
+        <select id="food-filter">
+            <option value="">All categories</option>
+            <option value="veg">Veg</option>
+            <option value="non-veg">Non-veg</option>
+            <option value="diet">Diet</option>
+        </select>
+        <select id="rating-filter">
+            <option value="0">All ratings</option>
+            <option value="4.0">4.0+</option>
+            <option value="4.5">4.5+</option>
+            <option value="4.7">4.7+</option>
+        </select>
+        <label class="toggle">
+            <input type="checkbox" id="healthy-filter">
+            <span>Healthy only</span>
+        </label>
+        <button type="button" class="btn btn-secondary" id="location-btn">Use my location</button>
+    </div>
+
+    <div id="location-status" class="location-status">Showing all Telangana locations. Enable GPS for nearest-first delivery cards.</div>
+    <div class="restaurant-grid" id="restaurant-grid"></div>
+</section>
+
+<section class="section recommendation-strip">
+    <div class="section-heading">
+        <div>
+            <p class="eyebrow">Smart suggestions</p>
+            <h2>{% if nav_user %}Picked from your order signals{% else %}Trending healthy picks{% endif %}</h2>
+        </div>
+    </div>
+    <div class="menu-grid compact-grid">
+        {% for item in recommendations %}
+            <article class="menu-card">
+                <img src="{{ item.image_url }}" alt="{{ item.name }}">
+                <div class="menu-card-body">
+                    <div class="menu-topline">
+                        <span class="tag">{{ item.category|replace('_', ' ')|title }}</span>
+                        {% if item.healthy_badge %}<span class="healthy-pill">Healthy</span>{% endif %}
+                    </div>
+                    <h3>{{ item.name }}</h3>
+                    <p>{{ item.restaurant.name }}</p>
+                    <div class="menu-footer">
+                        <strong>Rs. {{ "%.0f"|format(item.price) }}</strong>
+                        <a href="{{ url_for('main.restaurant_detail', restaurant_id=item.restaurant_id) }}" class="btn btn-mini">View</a>
+                    </div>
+                </div>
+            </article>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

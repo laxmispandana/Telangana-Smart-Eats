@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}AI Diet Planner{% endblock %}
+{% block content %}
+<section class="section">
+    <div class="section-heading">
+        <div>
+            <p class="eyebrow">AI diet recommendations</p>
+            <h1>Goal-based meal guidance</h1>
+        </div>
+        <p class="section-copy">Rule-based intelligence combines category, calorie, and healthy badge signals to recommend what to eat next and what to skip.</p>
+    </div>
+    <form method="get" class="filters">
+        <select name="goal">
+            <option value="weight_loss" {% if selected_goal == 'weight_loss' %}selected{% endif %}>Weight Loss</option>
+            <option value="muscle_gain" {% if selected_goal == 'muscle_gain' %}selected{% endif %}>Muscle Gain</option>
+            <option value="balanced_diet" {% if selected_goal == 'balanced_diet' %}selected{% endif %}>Balanced Diet</option>
+            <option value="vegetarian" {% if selected_goal == 'vegetarian' %}selected{% endif %}>Vegetarian</option>
+        </select>
+        <button class="btn btn-primary" type="submit">Generate plan</button>
+    </form>
+
+    <div class="diet-grid">
+        <div class="summary-card">
+            <h3>Recommended for {{ result.goal }}</h3>
+            {% for item in result.recommended %}
+                <div class="summary-row">
+                    <span>{{ item.name }}</span>
+                    <strong>{{ item.restaurant.name }}</strong>
+                </div>
+            {% endfor %}
+        </div>
+        <div class="summary-card">
+            <h3>Foods to avoid or limit</h3>
+            {% for item in result.avoid %}
+                <div class="summary-row">
+                    <span>{{ item.name }}</span>
+                    <strong>{{ item.category|title }}</strong>
+                </div>
+            {% else %}
+                <p>No strict avoid list for this goal.</p>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}
