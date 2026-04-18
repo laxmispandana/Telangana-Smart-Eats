@@ -9,8 +9,34 @@
         <div class="detail-metrics">
             <span>Total Rs. {{ "%.0f"|format(order.total_amount) }}</span>
             <span>Status {{ order.status }}</span>
+            <span>Method {{ order.latest_payment.method if order.latest_payment else 'Demo' }}</span>
             <span>Ref {{ order.payment_reference or 'Pending' }}</span>
         </div>
+        <div class="hero-actions">
+            <a href="{{ url_for('main.track_order', order_id=order.id) }}" class="btn btn-primary">Track order</a>
+            <a href="{{ url_for('main.index') }}" class="btn btn-secondary">Order more</a>
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="section-heading">
+        <div>
+            <p class="eyebrow">Live timeline</p>
+            <h2>What happens next</h2>
+        </div>
+    </div>
+    <div class="timeline-card">
+        {% for event in timeline %}
+            <div class="timeline-step timeline-step-active">
+                <span class="timeline-dot"></span>
+                <div>
+                    <strong>{{ event.status }}</strong>
+                    <p>{{ event.note or 'Order updated' }}</p>
+                    <small>{{ event.created_at }}</small>
+                </div>
+            </div>
+        {% endfor %}
     </div>
 </section>
 

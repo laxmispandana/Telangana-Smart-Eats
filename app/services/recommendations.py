@@ -1,4 +1,4 @@
-from collections import Counter
+from collections import Counter, defaultdict
 from math import atan2, cos, radians, sin, sqrt
 
 from ..models import MenuItem, Order
@@ -106,22 +106,53 @@ def build_diet_recommendation(goal):
     }
 
 
+def _collect_order_item_ids(orders):
+    sequences = []
+    for order in orders:
+        sequences.append([order_item.menu_item_id for order_item in order.order_items])
+    return sequences
+
+
+def people_also_ordered(menu_item_ids, limit=6):
+    if not menu_item_ids:
+        return []
+
+    counter = Counter()
+    orders = Order.query.order_by(Order.created_at.desc()).limit(200).all()
+    for item_ids in _collect_order_item_ids(orders):
+        current = set(item_ids)
+        if current.intersection(menu_item_ids):
+            for item_id in current:
+                if item_id not in menu_item_ids:
+                    counter[item_id] += 1
+
+    if not counter:
+        return []
+
+    ranked_ids = [item_id for item_id, _count in counter.most_common(limit)]
+    items = MenuItem.query.filter(MenuItem.id.in_(ranked_ids)).all()
+    order_map = {item_id: index for index, item_id in enumerate(ranked_ids)}
+    return sorted(items, key=lambda item: order_map.get(item.id, 999))
+
+
 def history_based_recommendations(user_id):
     orders = (
         Order.query.filter_by(user_id=user_id)
         .order_by(Order.created_at.desc())
-        .limit(10)
+        .limit(12)
         .all()
     )
     keyword_counter = Counter()
+    recent_item_ids = []
     for order in orders:
         for order_item in order.order_items:
+            recent_item_ids.append(order_item.menu_item_id)
             name = order_item.menu_item.name.lower()
             for keyword in BEHAVIOR_RULES:
                 if keyword in name:
                     keyword_counter[keyword] += order_item.quantity
 
-    if not keyword_counter:
+    if not keyword_counter and not recent_item_ids:
         return (
             MenuItem.query.filter(MenuItem.healthy_badge.is_(True))
             .order_by(MenuItem.calories.asc())
@@ -129,18 +160,23 @@ def history_based_recommendations(user_id):
             .all()
         )
 
-    names = []
+    hybrid_names = []
     for keyword, _count in keyword_counter.most_common(2):
-        names.extend(BEHAVIOR_RULES[keyword])
+        hybrid_names.extend(BEHAVIOR_RULES[keyword])
 
-    seen = set()
+    collaborative_items = people_also_ordered(set(recent_item_ids), limit=4)
+    collaborative_ids = {item.id for item in collaborative_items}
+
+    seen_names = set()
     ordered_names = []
-    for name in names:
-        if name not in seen:
-            seen.add(name)
+    for name in hybrid_names:
+        if name not in seen_names:
+            seen_names.add(name)
             ordered_names.append(name)
 
-    return MenuItem.query.filter(MenuItem.name.in_(ordered_names)).limit(6).all()
+    rule_based_items = MenuItem.query.filter(MenuItem.name.in_(ordered_names)).limit(6).all()
+    merged = collaborative_items + [item for item in rule_based_items if item.id not in collaborative_ids]
+    return merged[:6]
 
 
 def menu_item_tags(menu_item):

@@ -27,6 +27,11 @@
                     <span>{{ entry.item.name }} • {{ entry.item.calories or 'Balanced' }} kcal</span>
                     <strong>{{ entry.item.restaurant.name }}</strong>
                 </div>
+                <div class="nutrition-row">
+                    {% for tag in entry.tags %}
+                        <span class="tag">{{ tag }}</span>
+                    {% endfor %}
+                </div>
                 <p>{{ entry.reason }}</p>
             {% endfor %}
         </div>
@@ -36,6 +41,11 @@
                 <div class="summary-row">
                     <span>{{ entry.item.name }} • {{ entry.item.calories or 'Balanced' }} kcal</span>
                     <strong>{{ entry.item.category|title }}</strong>
+                </div>
+                <div class="nutrition-row">
+                    {% for tag in entry.tags %}
+                        <span class="tag">{{ tag }}</span>
+                    {% endfor %}
                 </div>
                 <p>{{ entry.reason }}</p>
             {% else %}

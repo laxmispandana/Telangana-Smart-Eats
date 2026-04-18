@@ -3,7 +3,7 @@ services:
     name: foodsprint
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn run:app
+    startCommand: gunicorn --worker-class gthread --threads 4 --workers 1 run:app
     envVars:
       - key: SECRET_KEY
         generateValue: true
@@ -11,6 +11,8 @@ services:
         fromDatabase:
           name: foodsprint-db
           property: connectionString
+      - key: REDIS_URL
+        sync: false
       - key: APP_BASE_URL
         sync: false
       - key: SPOONACULAR_API_KEY
@@ -18,6 +20,14 @@ services:
       - key: RAZORPAY_KEY_ID
         sync: false
       - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: FOODSPRINT_UPI_ID
+        sync: false
+      - key: FOODSPRINT_UPI_NAME
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
         sync: false
 
 databases:

@@ -20,7 +20,7 @@
     <div class="section-heading">
         <div>
             <p class="eyebrow">Recommended</p>
-            <h2>Top picks from {{ restaurant.name }}</h2>
+            <h2>Recommended for you</h2>
         </div>
     </div>
     <div class="menu-grid compact-grid">
@@ -40,6 +40,33 @@
         {% endfor %}
     </div>
 </section>
+
+{% if also_ordered %}
+<section class="section">
+    <div class="section-heading">
+        <div>
+            <p class="eyebrow">People also ordered</p>
+            <h2>Popular pairings</h2>
+        </div>
+    </div>
+    <div class="menu-grid compact-grid">
+        {% for item in also_ordered %}
+            <article class="menu-card">
+                <img loading="lazy" src="{{ item.image_url }}" alt="{{ item.name }}">
+                <div class="menu-card-body">
+                    <div class="menu-topline">
+                        {% for tag in menu_item_tags(item)[:2] %}
+                            <span class="tag">{{ tag }}</span>
+                        {% endfor %}
+                    </div>
+                    <h3>{{ item.name }}</h3>
+                    <p>{{ item.restaurant.name }} • Rs. {{ "%.0f"|format(item.price) }}</p>
+                </div>
+            </article>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
 
 <section class="section">
     <div class="section-heading">
@@ -67,10 +94,14 @@
                 </div>
                 <div class="menu-list-media">
                     <img loading="lazy" src="{{ item.image_url }}" alt="{{ item.name }}">
-                    <form method="post" action="{{ url_for('main.add_to_cart') }}">
-                        <input type="hidden" name="item_id" value="{{ item.id }}">
-                        <button class="floating-add-btn" type="submit">ADD</button>
-                    </form>
+                    <div class="menu-action-stack">
+                        <button class="floating-add-btn js-add-to-cart" type="button" data-item-id="{{ item.id }}">ADD</button>
+                        <div class="menu-quantity-controls">
+                            <button class="qty-btn js-update-cart" type="button" data-item-id="{{ item.id }}" data-delta="-1">-</button>
+                            <span class="qty-display" data-item-id="{{ item.id }}">{{ cart_quantities.get(item.id|string, 0) }}</span>
+                            <button class="qty-btn js-update-cart" type="button" data-item-id="{{ item.id }}" data-delta="1">+</button>
+                        </div>
+                    </div>
                 </div>
             </article>
         {% endfor %}

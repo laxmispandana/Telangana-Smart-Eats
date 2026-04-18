@@ -13,10 +13,10 @@
 <body>
     <header class="site-header">
         <a href="{{ url_for('main.index') }}" class="brand">
-            <span class="brand-mark">FS</span>
+            <img src="{{ url_for('static', filename='img/foodsprint-logo.svg') }}" alt="FoodSprint logo" class="brand-logo">
             <div>
                 <strong>FoodSprint</strong>
-                <small>Telangana smart food ordering</small>
+                <small>Fast. Smart. Healthy.</small>
             </div>
         </a>
         <div class="nav-search-shell">
@@ -25,11 +25,13 @@
         <nav class="nav-links">
             <a href="{{ url_for('main.index') }}">Explore</a>
             <a href="{{ url_for('main.diet') }}">AI Diet Planner</a>
+            {% if nav_user %}
+                <a href="{{ url_for('main.track_order', order_id=nav_user.orders[-1].id) if nav_user.orders else url_for('main.cart') }}">Track Order</a>
+            {% endif %}
             {% if admin_logged_in %}
                 <a href="{{ url_for('main.admin_dashboard') }}">Admin</a>
             {% else %}
                 <a href="{{ url_for('main.admin_login') }}">Admin Login</a>
-                <a href="{{ url_for('main.admin_register') }}">Admin Register</a>
             {% endif %}
             <a href="{{ url_for('main.cart') }}" class="cart-link">Cart <span class="cart-badge" id="cart-badge">{{ cart_meta.count }}</span></a>
             {% if nav_user %}
@@ -59,7 +61,48 @@
         {% block content %}{% endblock %}
     </main>
 
+    <a href="{{ url_for('main.cart') }}" class="floating-cart-button" id="floating-cart-button">
+        <span>Cart</span>
+        <strong id="floating-cart-count">{{ cart_meta.count }}</strong>
+    </a>
+
+    <aside class="mini-cart" id="mini-cart">
+        <div class="mini-cart-header">
+            <strong>Cart</strong>
+            <button type="button" class="mini-cart-close" id="mini-cart-close">&times;</button>
+        </div>
+        <div class="mini-cart-body" id="mini-cart-body">
+            {% if cart_meta.entries %}
+                {% for item in cart_meta.entries[:3] %}
+                    <div class="mini-cart-item">
+                        <img src="{{ item.menu_item.image_url }}" alt="{{ item.menu_item.name }}">
+                        <div>
+                            <strong>{{ item.menu_item.name }}</strong>
+                            <p>{{ item.quantity }} x Rs. {{ "%.0f"|format(item.menu_item.price) }}</p>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p class="mini-cart-empty">Your cart is empty.</p>
+            {% endif %}
+        </div>
+        <div class="mini-cart-footer">
+            <span>{{ cart_meta.count }} item(s)</span>
+            <strong>Rs. {{ "%.0f"|format(cart_meta.total) }}</strong>
+            <a href="{{ url_for('main.cart') }}" class="btn btn-primary summary-btn">Open cart</a>
+        </div>
+    </aside>
+
+    <section class="toast-stack" id="toast-stack"></section>
+
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js" crossorigin="anonymous"></script>
+    <script>
+        window.foodSprintRealtime = {
+            hasUser: {{ 'true' if nav_user else 'false' }},
+            hasAdmin: {{ 'true' if admin_logged_in else 'false' }}
+        };
+    </script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     {% block scripts %}{% endblock %}
 </body>

@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Track Order{% endblock %}
+{% block content %}
+<section class="section">
+    <div class="section-heading">
+        <div>
+            <p class="eyebrow">Order tracking</p>
+            <h1>Track order #{{ order.id }}</h1>
+        </div>
+        <p class="section-copy">Watch the order move from placed to delivered with live updates.</p>
+    </div>
+    <div class="tracking-grid" id="tracking-shell" data-order-id="{{ order.id }}">
+        <div class="summary-card">
+            <h3>Order snapshot</h3>
+            <div class="summary-row"><span>Status</span><strong id="order-status-label">{{ order.status }}</strong></div>
+            <div class="summary-row"><span>Payment</span><strong id="order-payment-status">{{ order.payment_status|replace('_', ' ')|title }}</strong></div>
+            <div class="summary-row"><span>Method</span><strong>{{ order.latest_payment.method if order.latest_payment else 'Unknown' }}</strong></div>
+            <div class="summary-row total-row"><span>Total</span><strong>Rs. {{ "%.0f"|format(order.total_amount) }}</strong></div>
+        </div>
+        <div class="timeline-card" id="order-timeline">
+            {% for event in timeline %}
+                <div class="timeline-step timeline-step-active">
+                    <span class="timeline-dot"></span>
+                    <div>
+                        <strong>{{ event.status }}</strong>
+                        <p>{{ event.note or 'Order updated' }}</p>
+                        <small>{{ event.created_at }}</small>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}

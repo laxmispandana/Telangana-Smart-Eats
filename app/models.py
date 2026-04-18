@@ -63,8 +63,24 @@ class Order(db.Model):
     payment_status = db.Column(db.String(50), nullable=False, default="pending")
     payment_reference = db.Column(db.String(120), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    status = db.Column(db.String(50), nullable=False, default="Confirmed")
+    status = db.Column(db.String(50), nullable=False, default="Placed")
     order_items = db.relationship("OrderItem", backref="order", lazy=True)
+    payments = db.relationship(
+        "PaymentTransaction",
+        backref="order",
+        lazy=True,
+        order_by="desc(PaymentTransaction.created_at)",
+    )
+    status_events = db.relationship(
+        "OrderStatusEvent",
+        backref="order",
+        lazy=True,
+        order_by="OrderStatusEvent.created_at.asc()",
+    )
+
+    @property
+    def latest_payment(self):
+        return self.payments[0] if self.payments else None
 
 
 class OrderItem(db.Model):
@@ -76,6 +92,37 @@ class OrderItem(db.Model):
     quantity = db.Column(db.Integer, nullable=False, default=1)
     price = db.Column(db.Float, nullable=False)
     menu_item = db.relationship("MenuItem")
+
+
+class PaymentTransaction(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey("order.id"), nullable=False, index=True)
+    provider = db.Column(db.String(40), nullable=False, default="manual")
+    method = db.Column(db.String(40), nullable=False, default="UPI")
+    status = db.Column(db.String(40), nullable=False, default="pending")
+    amount = db.Column(db.Float, nullable=False)
+    transaction_id = db.Column(db.String(120), nullable=True, index=True)
+    gateway_order_id = db.Column(db.String(120), nullable=True, index=True)
+    gateway_payment_id = db.Column(db.String(120), nullable=True, index=True)
+    gateway_signature = db.Column(db.String(255), nullable=True)
+    upi_id = db.Column(db.String(120), nullable=True)
+    qr_payload = db.Column(db.Text, nullable=True)
+    metadata_json = db.Column(db.JSON, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(
+        db.DateTime,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+        nullable=False,
+    )
+
+
+class OrderStatusEvent(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey("order.id"), nullable=False, index=True)
+    status = db.Column(db.String(50), nullable=False)
+    note = db.Column(db.String(255), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
 
 class Admin(db.Model):

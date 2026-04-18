@@ -5,15 +5,15 @@
     <div class="section-heading">
         <div>
             <p class="eyebrow">Admin panel</p>
-            <h1>Manage restaurants and menu items</h1>
+            <h1>Manage restaurants, menu items, and live orders</h1>
         </div>
-        <p class="section-copy">Create new listings, add dishes, and monitor recent orders from one control area.</p>
+        <p class="section-copy">Create listings, verify UPI payments, and move orders through the delivery pipeline.</p>
     </div>
 
     <div class="hero-stats admin-stats">
         <div><strong>{{ restaurants|length }}</strong><span>Restaurants</span></div>
         <div><strong>{{ total_menu_items }}</strong><span>Menu items</span></div>
-        <div><strong>{{ recent_orders|length }}</strong><span>Recent orders tracked</span></div>
+        <div><strong>{{ recent_orders|length }}</strong><span>Orders in view</span></div>
     </div>
 </section>
 
@@ -79,37 +79,41 @@
     </form>
 </section>
 
-<section class="section admin-grid">
+<section class="section">
     <div class="admin-card">
-        <p class="eyebrow">Current restaurants</p>
-        <h2>Listings</h2>
+        <p class="eyebrow">Order management</p>
+        <h2>Recent orders and payments</h2>
         <div class="admin-list">
-            {% for restaurant in restaurants %}
-                <div class="summary-row">
-                    <span>{{ restaurant.name }} • {{ restaurant.city }}</span>
-                    <strong>{{ restaurant.menu_items|length }} items</strong>
-                </div>
-            {% endfor %}
-        </div>
-    </div>
-
-    <div class="admin-card">
-        <p class="eyebrow">Recent orders</p>
-        <h2>Restaurant order visibility</h2>
-        <div class="admin-list">
-            {% for summary in order_summaries %}
-                <div class="order-visibility-card">
+            {% for order in recent_orders %}
+                <div class="order-admin-card">
                     <div class="summary-row">
-                        <span>Order #{{ summary.order.id }} • {{ summary.order.user.name }}</span>
-                        <strong>Rs. {{ "%.0f"|format(summary.order.total_amount) }}</strong>
+                        <span>Order #{{ order.id }} • {{ order.user.name }} • {{ order.user.phone }}</span>
+                        <strong>Rs. {{ "%.0f"|format(order.total_amount) }}</strong>
                     </div>
-                    {% for info in summary.restaurants %}
-                        <div class="order-restaurant-line">
-                            <strong>{{ info.restaurant.name }}</strong>
-                            <span>{{ info.quantity }} item(s)</span>
-                        </div>
-                        <p class="order-items">{{ info.item_names|join(', ') }}</p>
-                    {% endfor %}
+                    <p class="order-items">{{ order.order_items|map(attribute='menu_item.name')|join(', ') }}</p>
+                    <div class="nutrition-row">
+                        <span class="tag">{{ order.status }}</span>
+                        <span class="tag">{{ order.payment_status|replace('_', ' ')|title }}</span>
+                        <span class="tag">{{ order.latest_payment.method if order.latest_payment else 'Unknown' }}</span>
+                        <span class="tag">{{ order.latest_payment.transaction_id or order.payment_reference or 'No ref yet' }}</span>
+                    </div>
+                    <form method="post" action="{{ url_for('main.admin_update_order_status', order_id=order.id) }}" class="admin-inline-form">
+                        <label>Status
+                            <select name="status">
+                                {% for status in order_status_flow %}
+                                    <option value="{{ status }}" {% if status == order.status %}selected{% endif %}>{{ status }}</option>
+                                {% endfor %}
+                            </select>
+                        </label>
+                        <label>Payment
+                            <select name="payment_status">
+                                {% for payment_status in ['pending', 'verification_pending', 'paid', 'failed'] %}
+                                    <option value="{{ payment_status }}" {% if payment_status == order.payment_status %}selected{% endif %}>{{ payment_status|replace('_', ' ')|title }}</option>
+                                {% endfor %}
+                            </select>
+                        </label>
+                        <button class="btn btn-mini" type="submit">Update</button>
+                    </form>
                 </div>
             {% else %}
                 <p>No orders yet.</p>

@@ -1,0 +1,9 @@
+.git
+.gitignore
+.venv
+__pycache__
+*.pyc
+instance
+app/image_cache.json
+.env
+tests/__pycache__
