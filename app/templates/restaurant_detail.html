@@ -20,7 +20,7 @@
     <div class="section-heading">
         <div>
             <p class="eyebrow">Recommended</p>
-            <h2>Recommended for you</h2>
+            <h2>Popular items from this restaurant</h2>
         </div>
     </div>
     <div class="menu-grid compact-grid">
@@ -41,33 +41,6 @@
     </div>
 </section>
 
-{% if also_ordered %}
-<section class="section">
-    <div class="section-heading">
-        <div>
-            <p class="eyebrow">People also ordered</p>
-            <h2>Popular pairings</h2>
-        </div>
-    </div>
-    <div class="menu-grid compact-grid">
-        {% for item in also_ordered %}
-            <article class="menu-card">
-                <img loading="lazy" src="{{ item.image_url }}" alt="{{ item.name }}">
-                <div class="menu-card-body">
-                    <div class="menu-topline">
-                        {% for tag in menu_item_tags(item)[:2] %}
-                            <span class="tag">{{ tag }}</span>
-                        {% endfor %}
-                    </div>
-                    <h3>{{ item.name }}</h3>
-                    <p>{{ item.restaurant.name }} • Rs. {{ "%.0f"|format(item.price) }}</p>
-                </div>
-            </article>
-        {% endfor %}
-    </div>
-</section>
-{% endif %}
-
 <section class="section">
     <div class="section-heading">
         <div>
@@ -77,10 +50,12 @@
     </div>
     <div class="menu-list">
         {% for item in menu_items %}
-            <article class="menu-list-item {% if 'Popular 🔥' in menu_item_tags(item) %}menu-list-item-featured{% endif %}">
+            {% set item_qty = cart_quantities.get(item.id|string, 0) %}
+            {% set tags = menu_item_tags(item) %}
+            <article class="menu-list-item {% if 'Popular 🔥' in tags %}menu-list-item-featured{% endif %}">
                 <div class="menu-list-copy">
                     <div class="menu-topline">
-                        {% for tag in menu_item_tags(item) %}
+                        {% for tag in tags %}
                             <span class="tag">{{ tag }}</span>
                         {% endfor %}
                     </div>
@@ -94,12 +69,20 @@
                 </div>
                 <div class="menu-list-media">
                     <img loading="lazy" src="{{ item.image_url }}" alt="{{ item.name }}">
-                    <div class="menu-action-stack">
-                        <button class="floating-add-btn js-add-to-cart" type="button" data-item-id="{{ item.id }}">ADD</button>
-                        <div class="menu-quantity-controls">
-                            <button class="qty-btn js-update-cart" type="button" data-item-id="{{ item.id }}" data-delta="-1">-</button>
-                            <span class="qty-display" data-item-id="{{ item.id }}">{{ cart_quantities.get(item.id|string, 0) }}</span>
-                            <button class="qty-btn js-update-cart" type="button" data-item-id="{{ item.id }}" data-delta="1">+</button>
+                    <div class="menu-action-stack" data-cart-controls data-item-id="{{ item.id }}">
+                        <button
+                            class="floating-add-btn"
+                            type="button"
+                            data-cart-add
+                            data-item-id="{{ item.id }}"
+                            {% if item_qty > 0 %}hidden{% endif %}
+                        >
+                            ADD
+                        </button>
+                        <div class="menu-quantity-controls" data-qty-wrapper {% if item_qty == 0 %}hidden{% endif %}>
+                            <button class="qty-btn" type="button" data-cart-minus data-item-id="{{ item.id }}">-</button>
+                            <span class="qty-display" data-cart-qty>{{ item_qty }}</span>
+                            <button class="qty-btn" type="button" data-cart-plus data-item-id="{{ item.id }}">+</button>
                         </div>
                     </div>
                 </div>
@@ -119,9 +102,6 @@
                         <strong>{{ review.user.name }}</strong>
                         <span>{{ review.rating }}/5</span>
                     </div>
-                    {% if review.menu_item %}
-                        <p class="review-item">{{ review.menu_item.name }}</p>
-                    {% endif %}
                     <p>{{ review.comment }}</p>
                 </div>
             {% else %}
@@ -135,14 +115,6 @@
         <h2>Rate this restaurant</h2>
         {% if nav_user %}
             <form method="post" action="{{ url_for('main.add_review', restaurant_id=restaurant.id) }}">
-                <label>Menu item
-                    <select name="menu_item_id">
-                        <option value="">General restaurant review</option>
-                        {% for item in menu_items %}
-                            <option value="{{ item.id }}">{{ item.name }}</option>
-                        {% endfor %}
-                    </select>
-                </label>
                 <label>Rating
                     <select name="rating" required>
                         <option value="5">5</option>

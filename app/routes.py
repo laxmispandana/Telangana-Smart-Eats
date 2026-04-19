@@ -1,5 +1,4 @@
-import re
-import uuid
+from datetime import datetime
 from functools import wraps
 
 from flask import (
@@ -15,47 +14,29 @@ from flask import (
 )
 
 from .extensions import db
-from .models import (
-    Admin,
-    MenuItem,
-    Order,
-    PaymentTransaction,
-    Restaurant,
-    Review,
-    User,
-)
-from .services.cache_store import cache_store
-from .services.location import normalize_telangana_city, resolve_telangana_city
-from .services.notifications import emit_cart_update, emit_order_update, emit_toast
-from .services.orders import (
-    ORDER_STATUS_FLOW,
-    PAYMENT_STATUS_FLOW,
-    append_order_status,
-    create_order_with_items,
-    create_payment_record,
-    serialize_order_timeline,
-)
-from .services.payments import (
-    build_upi_app_links,
-    build_upi_uri,
-    create_razorpay_order,
-    generate_qr_code_data_uri,
-    manual_upi_configured,
-    razorpay_configured,
-    verify_razorpay_signature,
-)
-from .services.recommendations import (
-    build_diet_recommendation,
-    haversine_distance,
-    history_based_recommendations,
-    is_popular_item,
-    menu_item_tags,
-    people_also_ordered,
-)
+from .models import Admin, MenuItem, Order, OrderItem, Payment, Restaurant, Review, Staff, User
+from .services.location import calculate_distance, fallback_city_coordinates
+from .services.overpass import safe_fetch_overpass_restaurants
+from .services.recommendations import build_diet_recommendation, history_based_recommendations, menu_item_tags
+from .utils.payment import build_upi_payload, fake_transaction_id, generate_qr_data_uri
 
 main_bp = Blueprint("main", __name__)
+ORDER_STEPS = ["PLACED", "PREPARING", "OUT_FOR_DELIVERY", "DELIVERED"]
 
-UPI_ID_PATTERN = re.compile(r"^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}$")
+
+def current_user():
+    user_id = session.get("user_id")
+    return User.query.get(user_id) if user_id else None
+
+
+def current_admin():
+    admin_id = session.get("admin_id")
+    return Admin.query.get(admin_id) if admin_id else None
+
+
+def current_staff():
+    staff_id = session.get("staff_id")
+    return Staff.query.get(staff_id) if staff_id else None
 
 
 def login_required(view):
@@ -69,26 +50,23 @@ def login_required(view):
     return wrapped_view
 
 
-def current_user():
-    user_id = session.get("user_id")
-    return User.query.get(user_id) if user_id else None
-
-
-def admin_logged_in():
-    return session.get("admin_id") is not None
-
-
-def current_admin():
-    admin_id = session.get("admin_id")
-    return Admin.query.get(admin_id) if admin_id else None
-
-
 def admin_required(view):
     @wraps(view)
     def wrapped_view(*args, **kwargs):
-        if not admin_logged_in():
-            flash("Please log in as admin to continue.", "warning")
+        if "admin_id" not in session:
+            flash("Please log in as admin.", "warning")
             return redirect(url_for("main.admin_login"))
+        return view(*args, **kwargs)
+
+    return wrapped_view
+
+
+def staff_required(view):
+    @wraps(view)
+    def wrapped_view(*args, **kwargs):
+        if "staff_id" not in session:
+            flash("Please log in as staff.", "warning")
+            return redirect(url_for("main.staff_login"))
         return view(*args, **kwargs)
 
     return wrapped_view
@@ -103,106 +81,260 @@ def cart_context():
     entries = []
     total = 0
     count = 0
+
     if not cart:
-        return {"entries": entries, "total": total, "count": count}
+        return {"entries": [], "total": 0, "count": 0}
 
-    menu_items = MenuItem.query.filter(MenuItem.id.in_(list(map(int, cart.keys())))).all()
-    menu_map = {item.id: item for item in menu_items}
-
-    for item_id, quantity in cart.items():
-        menu_item = menu_map.get(int(item_id))
-        if not menu_item:
-            continue
-        subtotal = menu_item.price * quantity
+    items = MenuItem.query.filter(MenuItem.id.in_(list(map(int, cart.keys())))).all()
+    for item in items:
+        quantity = cart.get(str(item.id), 0)
+        subtotal = item.price * quantity
         total += subtotal
         count += quantity
-        entries.append({"menu_item": menu_item, "quantity": quantity, "subtotal": subtotal})
+        entries.append({"menu_item": item, "quantity": quantity, "subtotal": subtotal})
 
     return {"entries": entries, "total": total, "count": count}
 
 
-def get_fallback_city():
-    user = current_user()
-    return normalize_telangana_city(user.location if user else None) or "Hyderabad"
+def next_staff_id():
+    last_staff = Staff.query.order_by(Staff.id.desc()).first()
+    next_number = 1 if not last_staff else int(last_staff.staff_id.replace("STF", "")) + 1
+    return f"STF{next_number:03d}"
 
 
-def validate_upi_id(upi_id):
-    return bool(upi_id and UPI_ID_PATTERN.match(upi_id.strip()))
-
-
-def get_order_or_404_for_user(order_id):
-    order = Order.query.get_or_404(order_id)
-    if not admin_logged_in() and order.user_id != session.get("user_id"):
-        return None
-    return order
-
-
-def latest_payment_or_placeholder(order):
-    if order.latest_payment:
-        return order.latest_payment
-    payment = PaymentTransaction(
-        order_id=order.id,
-        provider="system",
-        method="Unknown",
-        status=order.payment_status,
-        amount=order.total_amount,
+def create_order_from_cart(user_id):
+    cart_data = cart_context()
+    order = Order(
+        user_id=user_id,
+        total_amount=cart_data["total"],
+        status="PLACED",
+        payment_status="PENDING",
     )
-    db.session.add(payment)
-    return payment
+    db.session.add(order)
+    db.session.flush()
+
+    for entry in cart_data["entries"]:
+        db.session.add(
+            OrderItem(
+                order_id=order.id,
+                menu_item_id=entry["menu_item"].id,
+                quantity=entry["quantity"],
+                price=entry["menu_item"].price,
+            )
+        )
+
+    return order, cart_data
 
 
-def emit_order_event(order, message):
-    emit_order_update(order, message=message)
-    emit_toast(f"user:{order.user_id}", "Order update", message, level="success")
+def wants_json_response():
+    return request.is_json or request.args.get("format") == "json" or request.accept_mimetypes.best == "application/json"
+
+
+def restaurant_supports_food_type(restaurant, food_type):
+    normalized = (food_type or "").strip().lower()
+    if not normalized:
+        return True
+    item_types = {item.food_type.lower() for item in restaurant.menu_items}
+    if normalized == "veg":
+        return "veg" in item_types
+    if normalized == "non-veg":
+        return "non-veg" in item_types
+    return normalized in item_types
+
+
+def serialize_restaurant_card(restaurant, user_lat=None, user_lon=None):
+    distance_km = None
+    if user_lat is not None and user_lon is not None:
+        distance_km = round(calculate_distance(user_lat, user_lon, restaurant.lat, restaurant.lng), 2)
+
+    path = url_for("main.restaurant_detail", restaurant_id=restaurant.id)
+    return {
+        "id": restaurant.id,
+        "name": restaurant.name,
+        "city": restaurant.city,
+        "area": restaurant.area,
+        "lat": restaurant.lat,
+        "lon": restaurant.lng,
+        "lng": restaurant.lng,
+        "rating": restaurant.rating,
+        "delivery_time": restaurant.delivery_time,
+        "category": restaurant.category,
+        "cuisine": restaurant.cuisine,
+        "image_url": restaurant.image_url,
+        "distance_km": distance_km,
+        "has_veg": any(item.food_type.lower() == "veg" for item in restaurant.menu_items),
+        "has_non_veg": any(item.food_type.lower() == "non-veg" for item in restaurant.menu_items),
+        "source": "catalog",
+        "url": path,
+    }
+
+
+def serialize_cart_response():
+    cart_data = cart_context()
+    return {
+        "ok": True,
+        "count": cart_data["count"],
+        "total": round(cart_data["total"], 2),
+        "entries": [
+            {
+                "item_id": entry["menu_item"].id,
+                "name": entry["menu_item"].name,
+                "price": entry["menu_item"].price,
+                "quantity": entry["quantity"],
+                "subtotal": round(entry["subtotal"], 2),
+                "image_url": entry["menu_item"].image_url,
+                "restaurant_name": entry["menu_item"].restaurant.name,
+            }
+            for entry in cart_data["entries"]
+        ],
+    }
 
 
 @main_bp.app_context_processor
 def inject_globals():
     return {
         "nav_user": current_user(),
-        "cart_meta": cart_context(),
-        "admin_logged_in": admin_logged_in(),
         "nav_admin": current_admin(),
+        "nav_staff": current_staff(),
+        "cart_meta": cart_context(),
         "menu_item_tags": menu_item_tags,
-        "is_popular_item": is_popular_item,
-        "order_status_flow": ORDER_STATUS_FLOW,
+        "order_steps": ORDER_STEPS,
     }
 
 
 @main_bp.route("/")
 def index():
     restaurants = Restaurant.query.order_by(Restaurant.rating.desc()).all()
-    top_rated = Restaurant.query.order_by(Restaurant.rating.desc()).limit(3).all()
     recommendations = (
         history_based_recommendations(session["user_id"])
         if "user_id" in session
-        else MenuItem.query.filter_by(healthy_badge=True).limit(6).all()
+        else MenuItem.query.order_by(MenuItem.healthy_badge.desc(), MenuItem.calories.asc()).limit(6).all()
     )
+    top_rated = Restaurant.query.order_by(Restaurant.rating.desc()).limit(3).all()
+    fallback_city = fallback_city_coordinates("Hyderabad")
     return render_template(
         "index.html",
         restaurants=restaurants,
-        top_rated=top_rated,
         recommendations=recommendations,
-        fallback_city=get_fallback_city(),
+        top_rated=top_rated,
+        fallback_city=fallback_city,
+        city_options=sorted({restaurant.city for restaurant in restaurants}),
+        osm_type_options=["restaurant", "cafe", "fast_food", "food_court"],
     )
 
 
-@main_bp.route("/location/context")
-def location_context():
-    fallback_city = normalize_telangana_city(request.args.get("fallback_city")) or get_fallback_city()
-    lat = request.args.get("lat", type=float)
-    lng = request.args.get("lng", type=float)
-    if lat is None or lng is None:
-        return jsonify({"ok": True, "mode": "fallback", "city": fallback_city})
+@main_bp.route("/api/search")
+def search_restaurants():
+    query = request.args.get("q", "").strip().lower()
+    restaurants = Restaurant.query.order_by(Restaurant.rating.desc()).all()
+    filtered = [
+        {
+            "id": restaurant.id,
+            "name": restaurant.name,
+            "image": restaurant.image_url,
+            "rating": restaurant.rating,
+            "time": restaurant.delivery_time,
+        }
+        for restaurant in restaurants
+        if not query
+        or query in restaurant.name.lower()
+        or query in restaurant.city.lower()
+        or query in restaurant.cuisine.lower()
+    ]
+    return jsonify(filtered)
 
-    cache_key = f"location:{round(lat, 3)}:{round(lng, 3)}"
-    cached = cache_store.get_json(cache_key)
-    if cached:
-        return jsonify({"ok": True, "mode": "precise", **cached})
 
-    resolved = resolve_telangana_city(lat, lng)
-    cache_store.set_json(cache_key, resolved, ttl=600)
-    return jsonify({"ok": True, "mode": "precise", **resolved})
+@main_bp.route("/api/nearby")
+def nearby_restaurants():
+    city = request.args.get("city", "Hyderabad").strip().lower()
+    restaurants = Restaurant.query.order_by(Restaurant.rating.desc()).all()
+    filtered = [restaurant for restaurant in restaurants if restaurant.city.lower() == city]
+    if not filtered:
+        filtered = restaurants[:6]
+    return jsonify(
+        [
+            {
+                "id": restaurant.id,
+                "name": restaurant.name,
+                "city": restaurant.city,
+                "image": restaurant.image_url,
+                "rating": restaurant.rating,
+                "time": restaurant.delivery_time,
+            }
+            for restaurant in filtered
+        ]
+    )
+
+
+@main_bp.route("/api/nearby-restaurants")
+def nearby_restaurants_precise():
+    user_lat = request.args.get("user_lat", type=float) or request.args.get("lat", type=float)
+    user_lon = request.args.get("user_lon", type=float) or request.args.get("lon", type=float)
+    selected_city = (request.args.get("city") or "").strip()
+    food_type = (request.args.get("food_type") or "").strip().lower()
+    osm_type = (request.args.get("type") or "").strip().lower()
+    keyword = (request.args.get("keyword") or "").strip()
+    max_distance_km = request.args.get("max_distance_km", default=10, type=float)
+    min_rating = request.args.get("min_rating", type=float)
+    limit = request.args.get("limit", default=10, type=int)
+
+    restaurants = Restaurant.query.order_by(Restaurant.rating.desc()).all()
+    if selected_city:
+        restaurants = [restaurant for restaurant in restaurants if restaurant.city.lower() == selected_city.lower()]
+    if food_type:
+        restaurants = [restaurant for restaurant in restaurants if restaurant_supports_food_type(restaurant, food_type)]
+    if keyword:
+        lowered = keyword.lower()
+        restaurants = [
+            restaurant
+            for restaurant in restaurants
+            if lowered in restaurant.name.lower()
+            or lowered in restaurant.cuisine.lower()
+            or lowered in restaurant.area.lower()
+        ]
+
+    fallback_city = fallback_city_coordinates(selected_city or "Hyderabad")
+    reference_lat = user_lat if user_lat is not None else fallback_city["lat"]
+    reference_lon = user_lon if user_lon is not None else fallback_city["lng"]
+
+    catalog_places = [serialize_restaurant_card(restaurant, reference_lat, reference_lon) for restaurant in restaurants]
+    catalog_places = [
+        place for place in catalog_places
+        if place["distance_km"] is None or place["distance_km"] <= max_distance_km
+    ]
+    if min_rating is not None:
+        catalog_places = [place for place in catalog_places if place["rating"] is not None and place["rating"] >= min_rating]
+
+    osm_places, osm_error = safe_fetch_overpass_restaurants(
+        reference_lat,
+        reference_lon,
+        radius_m=max(1000, int(max_distance_km * 1000)),
+        amenity=osm_type,
+        keyword=keyword,
+    )
+
+    if food_type == "veg":
+        osm_places = [
+            place for place in osm_places
+            if "veg" in (place.get("cuisine") or "").lower() or place["type"] == "cafe"
+        ]
+    elif food_type == "non-veg":
+        osm_places = [
+            place for place in osm_places
+            if "veg" not in (place.get("cuisine") or "").lower()
+        ]
+
+    merged_places = catalog_places + [place for place in osm_places if place["distance_km"] <= max_distance_km]
+    merged_places.sort(key=lambda item: ((item["distance_km"] if item["distance_km"] is not None else 99999), -(item.get("rating") or 0)))
+    return jsonify(
+        {
+            "city": fallback_city["name"],
+            "user_lat": reference_lat,
+            "user_lon": reference_lon,
+            "osm_error": osm_error,
+            "restaurants": merged_places[: max(limit, 1)],
+        }
+    )
 
 
 @main_bp.route("/signup", methods=["GET", "POST"])
@@ -222,8 +354,9 @@ def signup():
         user.set_password(request.form["password"])
         db.session.add(user)
         db.session.commit()
+        session.clear()
         session["user_id"] = user.id
-        flash("Welcome aboard. Your account is ready.", "success")
+        flash("Welcome to FoodSprint.", "success")
         return redirect(url_for("main.index"))
 
     return render_template("signup.html")
@@ -232,595 +365,329 @@ def signup():
 @main_bp.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        email = request.form["email"].strip().lower()
-        user = User.query.filter_by(email=email).first()
-        if not user or not user.check_password(request.form["password"]):
-            flash("Invalid email or password.", "danger")
-            return redirect(url_for("main.login"))
-
-        session["user_id"] = user.id
-        flash("Welcome back.", "success")
-        return redirect(url_for("main.index"))
-
+        user = User.query.filter_by(email=request.form["email"].strip().lower()).first()
+        if user and user.check_password(request.form["password"]):
+            session.clear()
+            session["user_id"] = user.id
+            flash("Welcome back.", "success")
+            return redirect(url_for("main.index"))
+        flash("Invalid credentials.", "danger")
     return render_template("login.html")
 
 
 @main_bp.route("/logout")
 def logout():
     session.clear()
-    flash("You have been logged out.", "info")
+    flash("Logged out successfully.", "info")
     return redirect(url_for("main.index"))
-
-
-@main_bp.route("/admin/login", methods=["GET", "POST"])
-def admin_login():
-    if request.method == "POST":
-        email = request.form["email"].strip().lower()
-        password = request.form["password"]
-        admin = Admin.query.filter_by(email=email).first()
-        if not admin and email == current_app.config["ADMIN_EMAIL"].strip().lower():
-            seeded_admin = Admin(
-                name="Platform Admin",
-                email=current_app.config["ADMIN_EMAIL"].strip().lower(),
-            )
-            seeded_admin.set_password(current_app.config["ADMIN_PASSWORD"])
-            db.session.add(seeded_admin)
-            db.session.commit()
-            admin = seeded_admin
-
-        if admin and admin.check_password(password):
-            session["admin_id"] = admin.id
-            flash("Admin access granted.", "success")
-            return redirect(url_for("main.admin_dashboard"))
-
-        flash("Invalid admin credentials.", "danger")
-        return redirect(url_for("main.admin_login"))
-
-    return render_template("admin_login.html")
 
 
 @main_bp.route("/admin/register", methods=["GET", "POST"])
 def admin_register():
-    if request.method == "POST":
-        email = request.form["email"].strip().lower()
-        if Admin.query.filter_by(email=email).first():
-            flash("An admin account with that email already exists.", "danger")
-            return redirect(url_for("main.admin_register"))
+    if Admin.query.count() >= 1:
+        flash("Only one admin account is allowed in FoodSprint.", "warning")
+        return redirect(url_for("main.admin_login"))
 
-        admin = Admin(name=request.form["name"].strip(), email=email)
+    if request.method == "POST":
+        admin = Admin(
+            name=request.form["name"].strip(),
+            email=request.form["email"].strip().lower(),
+            upi_id=current_app.config.get("FOODSPRINT_UPI_ID"),
+        )
         admin.set_password(request.form["password"])
         db.session.add(admin)
         db.session.commit()
+        session.clear()
         session["admin_id"] = admin.id
-        flash("Admin account created successfully.", "success")
+        flash("Admin account created.", "success")
         return redirect(url_for("main.admin_dashboard"))
 
     return render_template("admin_register.html")
 
 
+@main_bp.route("/admin/login", methods=["GET", "POST"])
+def admin_login():
+    if request.method == "POST":
+        admin = Admin.query.filter_by(email=request.form["email"].strip().lower()).first()
+        if admin and admin.check_password(request.form["password"]):
+            session.clear()
+            session["admin_id"] = admin.id
+            flash("Admin logged in.", "success")
+            return redirect(url_for("main.admin_dashboard"))
+        flash("Invalid admin credentials.", "danger")
+    return render_template("admin_login.html")
+
+
 @main_bp.route("/admin/logout")
 def admin_logout():
     session.pop("admin_id", None)
-    flash("Admin session closed.", "info")
+    flash("Admin logged out.", "info")
     return redirect(url_for("main.index"))
 
 
-@main_bp.route("/admin")
+@main_bp.route("/staff/login", methods=["GET", "POST"])
+def staff_login():
+    if request.method == "POST":
+        staff = Staff.query.filter_by(email=request.form["email"].strip().lower()).first()
+        if staff and staff.check_password(request.form["password"]):
+            session.clear()
+            session["staff_id"] = staff.id
+            flash("Staff logged in.", "success")
+            return redirect(url_for("main.staff_dashboard"))
+        flash("Invalid staff credentials.", "danger")
+    return render_template("staff_login.html")
+
+
+@main_bp.route("/staff/logout")
+def staff_logout():
+    session.pop("staff_id", None)
+    flash("Staff logged out.", "info")
+    return redirect(url_for("main.index"))
+
+
+@main_bp.route("/admin/dashboard")
 @admin_required
 def admin_dashboard():
+    admin = current_admin()
     restaurants = Restaurant.query.order_by(Restaurant.name.asc()).all()
-    recent_orders = Order.query.order_by(Order.created_at.desc()).limit(20).all()
-    total_menu_items = MenuItem.query.count()
-    recent_reviews = Review.query.order_by(Review.created_at.desc()).limit(10).all()
+    orders = Order.query.order_by(Order.created_at.desc()).all()
+    staff_members = Staff.query.order_by(Staff.staff_id.asc()).all()
+    recent_reviews = Review.query.order_by(Review.created_at.desc()).limit(8).all()
     return render_template(
         "admin_dashboard.html",
+        admin=admin,
         restaurants=restaurants,
-        recent_orders=recent_orders,
-        total_menu_items=total_menu_items,
+        recent_orders=orders,
+        total_menu_items=MenuItem.query.count(),
+        staff_members=staff_members,
         recent_reviews=recent_reviews,
+        staff_limit=current_app.config["STAFF_LIMIT"],
     )
 
 
-@main_bp.route("/admin/restaurants/new", methods=["POST"])
+@main_bp.route("/admin/add_staff", methods=["POST"])
 @admin_required
-def admin_create_restaurant():
-    restaurant = Restaurant(
+def add_staff():
+    if Staff.query.count() >= current_app.config["STAFF_LIMIT"]:
+        flash("Staff limit reached. Increase STAFF_LIMIT to add more accounts.", "danger")
+        return redirect(url_for("main.admin_dashboard"))
+
+    email = request.form["email"].strip().lower()
+    if Staff.query.filter_by(email=email).first():
+        flash("Staff account with that email already exists.", "danger")
+        return redirect(url_for("main.admin_dashboard"))
+
+    staff = Staff(
+        staff_id=next_staff_id(),
         name=request.form["name"].strip(),
-        city=request.form["city"].strip(),
-        area=request.form["area"].strip(),
-        lat=float(request.form["lat"]),
-        lng=float(request.form["lng"]),
-        rating=float(request.form["rating"]),
-        category=request.form["category"].strip(),
-        cuisine=request.form["cuisine"].strip(),
-        image_url=request.form["image_url"].strip(),
-        delivery_time=int(request.form["delivery_time"]),
-        description=request.form["description"].strip(),
+        email=email,
     )
-    db.session.add(restaurant)
+    staff.set_password(request.form["password"])
+    db.session.add(staff)
     db.session.commit()
-    cache_store.delete("restaurants-feed")
-    flash("Restaurant added successfully.", "success")
+    flash(f"Staff account {staff.staff_id} created.", "success")
     return redirect(url_for("main.admin_dashboard"))
 
 
-@main_bp.route("/admin/menu/new", methods=["POST"])
+@main_bp.route("/admin/set_upi", methods=["POST"])
 @admin_required
-def admin_create_menu_item():
-    item = MenuItem(
-        restaurant_id=int(request.form["restaurant_id"]),
-        name=request.form["name"].strip(),
-        description=request.form["description"].strip(),
-        price=float(request.form["price"]),
-        image_url=request.form["image_url"].strip(),
-        category=request.form["category"].strip(),
-        food_type=request.form["food_type"].strip(),
-        calories=int(request.form["calories"]) if request.form.get("calories") else None,
-        healthy_badge=bool(request.form.get("healthy_badge")),
-    )
-    db.session.add(item)
+def set_upi():
+    admin = current_admin()
+    admin.upi_id = request.form["upi_id"].strip()
     db.session.commit()
-    flash("Menu item added successfully.", "success")
+    flash("UPI ID updated successfully.", "success")
     return redirect(url_for("main.admin_dashboard"))
 
 
-@main_bp.route("/admin/orders/<int:order_id>/status", methods=["POST"])
-@admin_required
-def admin_update_order_status(order_id):
+@main_bp.route("/staff/dashboard")
+@staff_required
+def staff_dashboard():
+    staff = current_staff()
+    orders = Order.query.order_by(Order.created_at.desc()).all()
+    return render_template("staff_dashboard.html", staff=staff, orders=orders)
+
+
+@main_bp.route("/staff/update_order/<int:order_id>", methods=["POST"])
+@staff_required
+def update_order(order_id):
     order = Order.query.get_or_404(order_id)
-    next_status = request.form.get("status", "").strip()
-    next_payment_status = request.form.get("payment_status", "").strip() or order.payment_status
-    if next_status and next_status not in ORDER_STATUS_FLOW:
-        flash("Invalid order status.", "danger")
-        return redirect(url_for("main.admin_dashboard"))
-    if next_payment_status not in PAYMENT_STATUS_FLOW:
-        flash("Invalid payment status.", "danger")
-        return redirect(url_for("main.admin_dashboard"))
-
-    if next_status and next_status != order.status:
-        append_order_status(order, next_status, note="Updated by admin")
-    order.payment_status = next_payment_status
-    payment = latest_payment_or_placeholder(order)
-    payment.status = next_payment_status
-    db.session.commit()
-    emit_order_event(order, f"Order #{order.id} is now {order.status}.")
-    flash("Order updated successfully.", "success")
-    return redirect(url_for("main.admin_dashboard"))
+    try:
+        current_index = ORDER_STEPS.index(order.status)
+    except ValueError:
+        current_index = 0
+    if current_index < len(ORDER_STEPS) - 1:
+        order.status = ORDER_STEPS[current_index + 1]
+        db.session.commit()
+        flash(f"Order #{order.id} updated to {order.status.replace('_', ' ')}.", "success")
+    else:
+        flash("This order is already delivered.", "info")
+    return redirect(url_for("main.staff_dashboard"))
 
 
 @main_bp.route("/restaurants/<int:restaurant_id>")
 def restaurant_detail(restaurant_id):
     restaurant = Restaurant.query.get_or_404(restaurant_id)
-    related = MenuItem.query.filter_by(restaurant_id=restaurant.id).all()
-    reviews = (
-        Review.query.filter_by(restaurant_id=restaurant.id)
-        .order_by(Review.created_at.desc())
-        .limit(10)
-        .all()
-    )
-    recommended_items = sorted(
-        related,
-        key=lambda item: (
-            "Popular 🔥" not in menu_item_tags(item),
-            "Healthy 🥗" not in menu_item_tags(item),
-            item.price,
-        ),
-    )[:4]
-    also_ordered = people_also_ordered({item.id for item in related}, limit=4)
+    menu_items = MenuItem.query.filter_by(restaurant_id=restaurant.id).all()
+    recommended_items = menu_items[:4]
+    reviews = Review.query.filter_by(restaurant_id=restaurant.id).order_by(Review.created_at.desc()).all()
+    cart_quantities = session.get("cart", {})
     return render_template(
         "restaurant_detail.html",
         restaurant=restaurant,
-        menu_items=related,
-        reviews=reviews,
+        menu_items=menu_items,
         recommended_items=recommended_items,
-        also_ordered=also_ordered,
-        cart_quantities=session.get("cart", {}),
+        also_ordered=[],
+        reviews=reviews,
+        cart_quantities=cart_quantities,
     )
 
 
 @main_bp.route("/restaurants/<int:restaurant_id>/reviews", methods=["POST"])
 @login_required
 def add_review(restaurant_id):
-    restaurant = Restaurant.query.get_or_404(restaurant_id)
-    menu_item_id = request.form.get("menu_item_id", type=int)
-    rating = request.form.get("rating", type=int)
-    comment = request.form.get("comment", "").strip()
-
-    if rating is None or rating < 1 or rating > 5 or not comment:
-        flash("Please submit a rating between 1 and 5 and write a review comment.", "danger")
-        return redirect(url_for("main.restaurant_detail", restaurant_id=restaurant.id))
-
     review = Review(
         user_id=session["user_id"],
-        restaurant_id=restaurant.id,
-        menu_item_id=menu_item_id if menu_item_id else None,
-        rating=rating,
-        comment=comment,
+        restaurant_id=restaurant_id,
+        rating=int(request.form["rating"]),
+        comment=request.form["comment"].strip(),
     )
     db.session.add(review)
     db.session.commit()
-    flash("Thanks for sharing your review.", "success")
-    return redirect(url_for("main.restaurant_detail", restaurant_id=restaurant.id))
+    flash("Review submitted.", "success")
+    return redirect(url_for("main.restaurant_detail", restaurant_id=restaurant_id))
 
 
 @main_bp.route("/cart")
 def cart():
-    return render_template("cart.html", cart_data=cart_context())
+    cart_data = cart_context()
+    if wants_json_response():
+        return jsonify(serialize_cart_response())
+    return render_template("cart.html", cart_data=cart_data)
 
 
 @main_bp.route("/cart/add", methods=["POST"])
 def add_to_cart():
-    payload = request.get_json(silent=True) or {}
-    item_id = request.form.get("item_id") or payload.get("item_id")
-    quantity = int(request.form.get("quantity", 1) or payload.get("quantity", 1))
+    item_id = request.form.get("item_id") or (request.get_json(silent=True) or {}).get("item_id")
+    quantity = int(request.form.get("quantity", 1) or (request.get_json(silent=True) or {}).get("quantity", 1))
+    if not item_id:
+        return redirect(url_for("main.cart"))
     MenuItem.query.get_or_404(item_id)
     cart = get_cart()
     cart[str(item_id)] = cart.get(str(item_id), 0) + quantity
     session.modified = True
-    meta = cart_context()
-    if session.get("user_id"):
-        emit_cart_update(session["user_id"], meta)
-
     if request.is_json:
-        return jsonify({"ok": True, "count": meta["count"], "total": meta["total"]})
-
+        return jsonify(serialize_cart_response())
     flash("Item added to cart.", "success")
     return redirect(request.referrer or url_for("main.cart"))
 
 
 @main_bp.route("/cart/update", methods=["POST"])
 def update_cart():
-    payload = request.get_json(silent=True) or {}
-    item_id = str(request.form.get("item_id") or payload.get("item_id"))
-    quantity = int(request.form.get("quantity") or payload.get("quantity", 1))
+    item_id = request.form.get("item_id") or (request.get_json(silent=True) or {}).get("item_id")
+    quantity = int(request.form.get("quantity", 0) or (request.get_json(silent=True) or {}).get("quantity", 0))
     cart = get_cart()
     if quantity <= 0:
-        cart.pop(item_id, None)
+        cart.pop(str(item_id), None)
     else:
-        cart[item_id] = quantity
+        cart[str(item_id)] = quantity
     session.modified = True
-    meta = cart_context()
-    if session.get("user_id"):
-        emit_cart_update(session["user_id"], meta)
-
     if request.is_json:
-        return jsonify({"ok": True, "count": meta["count"], "total": meta["total"]})
-
+        return jsonify(serialize_cart_response())
     return redirect(url_for("main.cart"))
 
 
-@main_bp.route("/restaurants/data")
-def restaurants_data():
-    user_lat = request.args.get("lat", type=float)
-    user_lng = request.args.get("lng", type=float)
-    radius = request.args.get("radius", type=float, default=10)
-    search = request.args.get("search", "").strip().lower()
-    food_type = request.args.get("food_type", "").strip().lower()
-    healthy = request.args.get("healthy", "").strip().lower() == "true"
-    min_rating = request.args.get("rating", type=float, default=0)
-    city_hint = normalize_telangana_city(request.args.get("city")) or get_fallback_city()
-    page = max(request.args.get("page", type=int, default=1), 1)
-    per_page = min(max(request.args.get("per_page", type=int, default=12), 1), 30)
-
-    cache_key = f"restaurants:{user_lat}:{user_lng}:{radius}:{search}:{food_type}:{healthy}:{min_rating}:{city_hint}"
-    cached = cache_store.get_json(cache_key)
-    if cached:
-        payload = cached
-    else:
-        restaurants = Restaurant.query.all()
-        payload = []
-        for restaurant in restaurants:
-            if search and search not in restaurant.name.lower() and search not in restaurant.city.lower():
-                continue
-            if food_type and restaurant.category != food_type:
-                continue
-            if restaurant.rating < min_rating:
-                continue
-            if healthy and restaurant.category not in {"diet", "veg"}:
-                continue
-
-            distance = None
-            if user_lat is not None and user_lng is not None:
-                distance = haversine_distance(user_lat, user_lng, restaurant.lat, restaurant.lng)
-                if radius and distance > radius:
-                    continue
-
-            payload.append(
-                {
-                    "id": restaurant.id,
-                    "name": restaurant.name,
-                    "city": restaurant.city,
-                    "area": restaurant.area,
-                    "rating": restaurant.rating,
-                    "category": restaurant.category,
-                    "cuisine": restaurant.cuisine,
-                    "image_url": restaurant.image_url,
-                    "distance": round(distance, 1) if distance is not None else None,
-                    "lat": restaurant.lat,
-                    "lng": restaurant.lng,
-                    "delivery_time": restaurant.delivery_time,
-                    "description": restaurant.description,
-                    "popular": restaurant.rating >= 4.6,
-                    "city_match": restaurant.city.lower() == city_hint.lower(),
-                }
-            )
-
-        if user_lat is not None and user_lng is not None:
-            payload.sort(
-                key=lambda item: (item["distance"] is None, item["distance"] or 9999, -item["rating"])
-            )
-        else:
-            payload.sort(key=lambda item: (not item["city_match"], -item["rating"], item["delivery_time"]))
-        cache_store.set_json(cache_key, payload, ttl=120)
-
-    total = len(payload)
-    start = (page - 1) * per_page
-    end = start + per_page
-    response = jsonify(payload[start:end])
-    response.headers["X-Total-Count"] = str(total)
-    response.headers["X-Total-Pages"] = str(max(1, (total + per_page - 1) // per_page))
-    return response
-
-
-@main_bp.route("/diet", methods=["GET", "POST"])
-def diet():
-    goal = request.values.get("goal", "balanced_diet")
-    result = build_diet_recommendation(goal)
-    return render_template("diet.html", result=result, selected_goal=goal)
-
-
-@main_bp.route("/checkout", methods=["GET", "POST"])
+@main_bp.route("/checkout")
 @login_required
 def checkout():
-    meta = cart_context()
-    if meta["count"] == 0:
-        flash("Add items to your cart before checkout.", "warning")
-        return redirect(url_for("main.index"))
+    admin = Admin.query.first()
+    return render_template("checkout.html", cart_data=cart_context(), admin_upi_id=admin.upi_id if admin else "")
 
-    if request.method == "POST":
-        order = create_order_with_items(
-            session["user_id"],
-            meta,
-            status="Placed",
-            payment_status="paid",
-        )
-        order.payment_reference = f"DEMO-{uuid.uuid4().hex[:10].upper()}"
-        create_payment_record(
-            order,
-            provider="demo",
-            method="Demo",
-            amount=meta["total"],
-            status="paid",
-            transaction_id=order.payment_reference,
-        )
-        db.session.commit()
-        session["cart"] = {}
-        emit_order_event(order, f"Order #{order.id} has been placed successfully.")
-        flash("Demo payment completed successfully.", "success")
-        return redirect(url_for("main.order_confirmation", order_id=order.id))
+
+@main_bp.route("/payment/upi", methods=["POST"])
+@login_required
+def payment_upi():
+    admin = Admin.query.first()
+    if not admin or not admin.upi_id:
+        flash("Admin UPI ID is not configured yet.", "danger")
+        return redirect(url_for("main.checkout"))
+
+    if cart_context()["count"] == 0:
+        flash("Your cart is empty.", "warning")
+        return redirect(url_for("main.cart"))
+
+    order, cart_data = create_order_from_cart(session["user_id"])
+    payload = build_upi_payload(admin.upi_id, cart_data["total"])
+    qr_code = generate_qr_data_uri(payload)
+
+    payment = Payment(
+        order_id=order.id,
+        method="UPI",
+        status="PENDING",
+        upi_id=admin.upi_id,
+        qr_payload=payload,
+    )
+    db.session.add(payment)
+    db.session.commit()
 
     return render_template(
-        "checkout.html",
-        cart_data=meta,
-        razorpay_enabled=razorpay_configured(),
-        manual_upi_enabled=manual_upi_configured(),
-        razorpay_key_id=current_app.config["RAZORPAY_KEY_ID"],
-        payee_upi_id=current_app.config["FOODSPRINT_UPI_ID"],
-        payee_upi_name=current_app.config["FOODSPRINT_UPI_NAME"],
+        "payment.html",
+        qr_code=qr_code,
+        upi_id=admin.upi_id,
+        amount=cart_data["total"],
+        order_id=order.id,
     )
 
 
-@main_bp.route("/payments/razorpay/order", methods=["POST"])
+@main_bp.route("/payment/confirm", methods=["POST"])
 @login_required
-def create_razorpay_checkout_order():
-    meta = cart_context()
-    payload = request.get_json(silent=True) or {}
-    preferred_method = payload.get("preferred_method", "UPI/Card")
-    if meta["count"] == 0:
-        return jsonify({"ok": False, "message": "Cart is empty."}), 400
-    if not razorpay_configured():
-        return jsonify({"ok": False, "message": "Razorpay is not configured."}), 400
-
-    try:
-        order = create_order_with_items(session["user_id"], meta, status="Placed", payment_status="pending")
-        gateway_order = create_razorpay_order(order)
-        order.payment_reference = gateway_order["id"]
-        create_payment_record(
-            order,
-            provider="razorpay",
-            method=preferred_method,
-            amount=meta["total"],
-            status="pending",
-            gateway_order_id=gateway_order["id"],
-            metadata_json={"currency": gateway_order["currency"]},
-        )
-        db.session.commit()
-    except Exception:
-        db.session.rollback()
-        return jsonify({"ok": False, "message": "Unable to initialize Razorpay order."}), 502
-
-    emit_order_event(order, f"Order #{order.id} is waiting for payment confirmation.")
-    return jsonify(
-        {
-            "ok": True,
-            "internal_order_id": order.id,
-            "razorpay_order_id": gateway_order["id"],
-            "amount": gateway_order["amount"],
-            "currency": gateway_order["currency"],
-            "key": current_app.config["RAZORPAY_KEY_ID"],
-            "name": "FoodSprint",
-            "description": "Telangana smart food ordering",
-            "prefill": {
-                "name": current_user().name,
-                "email": current_user().email,
-                "contact": current_user().phone,
-            },
-        }
-    )
-
-
-@main_bp.route("/payments/razorpay/verify", methods=["POST"])
-@login_required
-def verify_razorpay_payment():
-    payload = request.get_json(silent=True) or {}
-    order = Order.query.get_or_404(payload.get("internal_order_id"))
+def payment_confirm():
+    data = request.get_json(silent=True) or {}
+    order = Order.query.get_or_404(data.get("order_id"))
     if order.user_id != session["user_id"]:
-        return jsonify({"ok": False, "message": "Unauthorized order access."}), 403
+        return jsonify({"ok": False, "message": "Unauthorized"}), 403
 
-    signature_ok = verify_razorpay_signature(
-        payload.get("razorpay_order_id", ""),
-        payload.get("razorpay_payment_id", ""),
-        payload.get("razorpay_signature", ""),
-    )
-    payment = order.latest_payment or latest_payment_or_placeholder(order)
-    if not signature_ok:
-        order.payment_status = "failed"
-        payment.status = "failed"
-        payment.gateway_payment_id = payload.get("razorpay_payment_id")
-        payment.gateway_signature = payload.get("razorpay_signature")
-        db.session.commit()
-        emit_order_event(order, f"Payment failed for order #{order.id}.")
-        return jsonify({"ok": False, "message": "Signature verification failed."}), 400
+    payment = order.latest_payment
+    if not payment:
+        return jsonify({"ok": False, "message": "Payment not found"}), 404
 
-    order.payment_status = "paid"
-    order.payment_reference = payload.get("razorpay_payment_id")
-    payment.status = "paid"
-    payment.gateway_payment_id = payload.get("razorpay_payment_id")
-    payment.gateway_signature = payload.get("razorpay_signature")
+    payment.status = "SUCCESS"
+    payment.transaction_id = fake_transaction_id()
+    payment.created_at = datetime.utcnow()
+    order.payment_status = "SUCCESS"
+    if order.status == "PLACED":
+        order.status = "PREPARING"
     db.session.commit()
     session["cart"] = {}
-    emit_order_event(order, f"Payment received for order #{order.id}.")
-    return jsonify({"ok": True, "redirect_url": url_for("main.order_confirmation", order_id=order.id)})
 
-
-@main_bp.route("/payments/upi/create", methods=["POST"])
-@login_required
-def create_manual_upi_payment():
-    if not manual_upi_configured():
-        return jsonify({"ok": False, "message": "Manual UPI is not configured."}), 400
-
-    meta = cart_context()
-    payload = request.get_json(silent=True) or {}
-    payer_upi_id = payload.get("upi_id", "").strip()
-    if meta["count"] == 0:
-        return jsonify({"ok": False, "message": "Cart is empty."}), 400
-    if payer_upi_id and not validate_upi_id(payer_upi_id):
-        return jsonify({"ok": False, "message": "Please enter a valid UPI ID."}), 400
-
-    order = create_order_with_items(session["user_id"], meta, status="Placed", payment_status="pending")
-    upi_uri = build_upi_uri(order.id, meta["total"])
-    qr_data_uri = generate_qr_code_data_uri(upi_uri)
-    payment = create_payment_record(
-        order,
-        provider="manual_upi",
-        method="UPI",
-        amount=meta["total"],
-        status="pending",
-        upi_id=payer_upi_id or None,
-        qr_payload=upi_uri,
-        metadata_json={"intent_links": build_upi_app_links(upi_uri)},
-    )
-    db.session.commit()
-    emit_order_event(order, f"Manual UPI instructions generated for order #{order.id}.")
-    return jsonify(
-        {
-            "ok": True,
-            "order_id": order.id,
-            "amount": meta["total"],
-            "qr_code": qr_data_uri,
-            "upi_uri": upi_uri,
-            "intent_links": payment.metadata_json["intent_links"],
-            "redirect_url": url_for("main.track_order", order_id=order.id),
-        }
-    )
-
-
-@main_bp.route("/payments/upi/confirm", methods=["POST"])
-@login_required
-def confirm_manual_upi_payment():
-    payload = request.get_json(silent=True) or {}
-    order = Order.query.get_or_404(payload.get("order_id"))
-    if order.user_id != session["user_id"]:
-        return jsonify({"ok": False, "message": "Unauthorized order access."}), 403
-
-    transaction_id = (payload.get("transaction_id") or "").strip()
-    upi_id = (payload.get("upi_id") or "").strip()
-    if not transaction_id:
-        return jsonify({"ok": False, "message": "Enter the UPI transaction ID to continue."}), 400
-    if upi_id and not validate_upi_id(upi_id):
-        return jsonify({"ok": False, "message": "Please enter a valid UPI ID."}), 400
-
-    payment = order.latest_payment or latest_payment_or_placeholder(order)
-    payment.status = "verification_pending"
-    payment.transaction_id = transaction_id
-    payment.upi_id = upi_id or payment.upi_id
-    order.payment_status = "verification_pending"
-    db.session.commit()
-    emit_order_event(order, f"UPI proof submitted for order #{order.id}. Awaiting verification.")
-    emit_toast("admins", "UPI verification", f"Order #{order.id} needs manual UPI verification.", level="info")
-    return jsonify({"ok": True, "redirect_url": url_for("main.track_order", order_id=order.id)})
+    return jsonify({"ok": True, "redirect_url": url_for("main.order_detail", order_id=order.id)})
 
 
 @main_bp.route("/payment/failure")
-@login_required
 def payment_failure():
     order = None
     order_id = request.args.get("order_id", type=int)
     if order_id:
         order = Order.query.get(order_id)
-        if order and order.user_id == session["user_id"]:
-            order.payment_status = "failed"
-            payment = order.latest_payment or latest_payment_or_placeholder(order)
-            payment.status = "failed"
+        if order:
+            order.payment_status = "FAILED"
+            if order.latest_payment:
+                order.latest_payment.status = "FAILED"
             db.session.commit()
-            emit_order_event(order, f"Payment failed for order #{order.id}.")
     return render_template("payment_failure.html", order=order)
 
 
-@main_bp.route("/orders/<int:order_id>/confirmation")
+@main_bp.route("/order/<int:order_id>")
 @login_required
-def order_confirmation(order_id):
+def order_detail(order_id):
     order = Order.query.get_or_404(order_id)
     if order.user_id != session["user_id"]:
         flash("That order is not available for your account.", "danger")
         return redirect(url_for("main.index"))
-    recommendations = history_based_recommendations(session["user_id"])
-    return render_template(
-        "order_confirmation.html",
-        order=order,
-        recommendations=recommendations,
-        timeline=serialize_order_timeline(order),
-    )
+    return render_template("order_tracking.html", order=order)
 
 
-@main_bp.route("/orders/<int:order_id>/track")
-@login_required
-def track_order(order_id):
-    order = Order.query.get_or_404(order_id)
-    if order.user_id != session["user_id"]:
-        flash("That order is not available for your account.", "danger")
-        return redirect(url_for("main.index"))
-    return render_template(
-        "order_tracking.html",
-        order=order,
-        timeline=serialize_order_timeline(order),
-    )
-
-
-@main_bp.route("/orders/<int:order_id>/status")
-@login_required
-def order_status_api(order_id):
-    order = Order.query.get_or_404(order_id)
-    if order.user_id != session["user_id"]:
-        return jsonify({"ok": False, "message": "Unauthorized order access."}), 403
-    payment = order.latest_payment
-    return jsonify(
-        {
-            "ok": True,
-            "order_id": order.id,
-            "status": order.status,
-            "payment_status": order.payment_status,
-            "payment_method": payment.method if payment else "Unknown",
-            "timeline": serialize_order_timeline(order),
-        }
-    )
+@main_bp.route("/diet")
+def diet():
+    goal = request.args.get("goal", "balanced_diet")
+    result = build_diet_recommendation(goal)
+    return render_template("diet.html", result=result, selected_goal=goal)

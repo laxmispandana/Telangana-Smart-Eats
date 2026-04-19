@@ -6,11 +6,17 @@ def _pexels_photo(photo_id, width=1200):
 
 
 RESTAURANT_IMAGE_MAP = {
-    "hyderabad spice route": _pexels_photo(776538),
-    "warangal millet kitchen": _pexels_photo(11433158),
+    "paradise biryani hub": _pexels_photo(67468),
+    "shah ghouse darbar": _pexels_photo(70497),
+    "bawarchi express": _pexels_photo(6267),
+    "kritunga spice kitchen": _pexels_photo(958545),
+    "warangal tiffin corner": _pexels_photo(262978),
+    "kakatiya mess": _pexels_photo(1640777),
     "karimnagar grill house": _pexels_photo(19127343),
+    "nizam spice pot": _pexels_photo(5409010),
     "nizamabad veggie craft": _pexels_photo(15297129),
     "khammam fit feast": _pexels_photo(33324490),
+    "khammam chicken junction": _pexels_photo(29173110),
 }
 
 EXACT_MENU_IMAGE_MAP = {

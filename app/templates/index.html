@@ -1,52 +1,135 @@
 {% extends "base.html" %}
 {% block title %}FoodSprint{% endblock %}
+
+{% block head_extra %}
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+{% endblock %}
+
 {% block content %}
 <section class="hero">
     <div class="hero-copy">
         <p class="eyebrow">FoodSprint</p>
-        <h1>Delivery, diet AI, and smart restaurant discovery for Telangana.</h1>
-        <p class="hero-text">Find nearby restaurants with live GPS, browse menu images matched by dish name, and get explainable AI suggestions for every food goal.</p>
+        <h1>Nearby restaurants on open maps, built for Telangana.</h1>
+        <p class="hero-text">Explore restaurants around you with OpenStreetMap, browse the FoodSprint catalog, and keep the full cart, order, payment, and diet experience you already have.</p>
         <div class="hero-actions">
-            <a href="#restaurants" class="btn btn-primary">Start ordering</a>
+            <a href="#map-discovery" class="btn btn-primary">Open nearby map</a>
             <a href="{{ url_for('main.diet') }}" class="btn btn-secondary">Plan my diet</a>
         </div>
         <div class="hero-stats">
-            <div><strong>{{ restaurants|length }}</strong><span>Telangana kitchens</span></div>
-            <div><strong>50+</strong><span>Live food image cards</span></div>
-            <div><strong>AI</strong><span>Diet and history signals</span></div>
-        </div>
-        <div class="category-chip-row">
-            <button type="button" class="category-chip active" data-category="">All</button>
-            <button type="button" class="category-chip" data-category="veg">Veg</button>
-            <button type="button" class="category-chip" data-category="non-veg">Non-Veg</button>
-            <button type="button" class="category-chip" data-category="diet">Healthy</button>
+            <div><strong>{{ restaurants|length }}</strong><span>Catalog kitchens</span></div>
+            <div><strong>OSM</strong><span>OpenStreetMap discovery</span></div>
+            <div><strong>Live</strong><span>Location-aware search</span></div>
         </div>
     </div>
     <div class="hero-panel">
         <div class="hero-visual-grid">
-            <article class="hero-visual-card hero-visual-large">
-                <img loading="lazy" src="https://images.pexels.com/photos/1640774/pexels-photo-1640774.jpeg?auto=compress&cs=tinysrgb&w=1200" alt="FoodSprint featured bowls">
-                <div class="hero-visual-caption">
-                    <span class="tag">Smart bowls</span>
-                    <h2>Healthy meals and protein-heavy picks</h2>
-                </div>
-            </article>
-            <article class="hero-visual-card">
-                <img loading="lazy" src="https://images.pexels.com/photos/4224314/pexels-photo-4224314.jpeg?auto=compress&cs=tinysrgb&w=1200" alt="Biryani spread">
-                <div class="hero-visual-caption">
-                    <span class="tag">Popular</span>
-                    <h3>Swiggy-style discovery cards</h3>
-                </div>
-            </article>
-            <article class="hero-visual-card">
-                <img loading="lazy" src="https://images.pexels.com/photos/257816/pexels-photo-257816.jpeg?auto=compress&cs=tinysrgb&w=1200" alt="Fresh salad bowl">
-                <div class="hero-visual-caption">
-                    <span class="tag">Diet AI</span>
-                    <h3>Explainable food guidance</h3>
-                </div>
-            </article>
+            {% for restaurant in top_rated %}
+                <article class="hero-visual-card {% if loop.first %}hero-visual-large{% endif %}">
+                    <img loading="lazy" src="{{ restaurant.image_url }}" alt="{{ restaurant.name }}">
+                    <div class="hero-visual-caption">
+                        <span class="tag">{{ restaurant.city }}</span>
+                        <h3>{{ restaurant.name }}</h3>
+                    </div>
+                </article>
+            {% endfor %}
         </div>
-        <div id="map" class="map-card"></div>
+    </div>
+</section>
+
+<section
+    class="section"
+    id="map-discovery"
+    data-fallback-lat="{{ fallback_city.lat }}"
+    data-fallback-lng="{{ fallback_city.lng }}"
+    data-fallback-city="{{ fallback_city.name }}"
+>
+    <div class="section-heading">
+        <div>
+            <p class="eyebrow">OpenStreetMap discovery</p>
+            <h2>Find restaurants near you</h2>
+        </div>
+        <p class="section-copy location-status" id="locationStatus">Checking your location. If permission is denied, FoodSprint will fall back to Hyderabad.</p>
+    </div>
+
+    <div class="filters map-filter-grid">
+        <input type="search" id="nearbyKeyword" placeholder="Search by name, cuisine, or keyword">
+        <select id="typeFilter" aria-label="Restaurant type">
+            <option value="">All types</option>
+            {% for osm_type in osm_type_options %}
+                <option value="{{ osm_type }}">{{ osm_type.replace('_', ' ')|title }}</option>
+            {% endfor %}
+        </select>
+        <select id="distanceFilter" aria-label="Maximum distance">
+            <option value="5">Within 5 km</option>
+            <option value="10" selected>Within 10 km</option>
+            <option value="15">Within 15 km</option>
+        </select>
+        <select id="ratingFilter" aria-label="Minimum rating">
+            <option value="">Any rating</option>
+            <option value="4.0">4.0+</option>
+            <option value="4.5">4.5+</option>
+        </select>
+        <select id="cityFilter" aria-label="City filter">
+            <option value="">All cities</option>
+            {% for city in city_options %}
+                <option value="{{ city }}">{{ city }}</option>
+            {% endfor %}
+        </select>
+        <button class="category-chip active" type="button" data-food-filter="">All</button>
+        <button class="category-chip" type="button" data-food-filter="veg">Veg</button>
+        <button class="category-chip" type="button" data-food-filter="non-veg">Non-Veg</button>
+        <button class="btn btn-secondary" type="button" id="locateMeButton">Use my location</button>
+    </div>
+
+    <div class="admin-grid">
+        <div class="map-card">
+            <div id="restaurantMap" style="width:100%;height:100%;min-height:420px;"></div>
+        </div>
+        <div class="summary-card nearby-sidebar">
+            <p class="eyebrow">Near You</p>
+            <h3>Best nearby options</h3>
+            <div class="admin-list" id="nearbyRestaurantsList">
+                <div class="skeleton-card"></div>
+                <div class="skeleton-card"></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="section" id="near-you">
+    <div class="section-heading">
+        <div>
+            <p class="eyebrow">Nearby picks</p>
+            <h2>Closest restaurants</h2>
+        </div>
+        <p class="section-copy">This section blends FoodSprint catalog restaurants with nearby OpenStreetMap places when available.</p>
+    </div>
+    <div class="restaurant-grid" id="nearbyRestaurantCards">
+        {% for restaurant in top_rated %}
+            <article class="restaurant-card static-card">
+                <img loading="lazy" src="{{ restaurant.image_url }}" alt="{{ restaurant.name }}">
+                <div class="restaurant-card-overlay">
+                    <div class="restaurant-topline">
+                        <div>
+                            <h3>{{ restaurant.name }}</h3>
+                            <p>{{ restaurant.area }}, {{ restaurant.city }}</p>
+                        </div>
+                        <strong>⭐ {{ restaurant.rating }}</strong>
+                    </div>
+                    <div class="nutrition-row">
+                        <span class="tag">{{ restaurant.category|title }}</span>
+                        <span class="tag">{{ restaurant.delivery_time }} mins</span>
+                    </div>
+                    <p>{{ restaurant.cuisine }}</p>
+                    <div class="menu-footer">
+                        <span>Loading nearby places...</span>
+                        <a href="{{ url_for('main.restaurant_detail', restaurant_id=restaurant.id) }}" class="btn btn-mini">View Menu</a>
+                    </div>
+                </div>
+            </article>
+        {% endfor %}
     </div>
 </section>
 
@@ -56,7 +139,6 @@
             <p class="eyebrow">Top rated</p>
             <h2>Top Rated Restaurants</h2>
         </div>
-        <p class="section-copy">Highest-rated kitchens across Telangana, curated for quick discovery.</p>
     </div>
     <div class="restaurant-grid">
         {% for restaurant in top_rated %}
@@ -72,11 +154,11 @@
                     </div>
                     <div class="nutrition-row">
                         <span class="tag">{{ restaurant.category|title }}</span>
-                        {% if restaurant.rating >= 4.6 %}<span class="tag">Popular 🔥</span>{% endif %}
+                        <span class="tag">{{ restaurant.delivery_time }} mins</span>
                     </div>
                     <p>{{ restaurant.cuisine }}</p>
                     <div class="menu-footer">
-                        <span>{{ restaurant.delivery_time }} mins</span>
+                        <span>Unique restaurant imagery</span>
                         <a href="{{ url_for('main.restaurant_detail', restaurant_id=restaurant.id) }}" class="btn btn-mini">View Menu</a>
                     </div>
                 </div>
@@ -88,47 +170,47 @@
 <section class="section" id="restaurants">
     <div class="section-heading">
         <div>
-            <p class="eyebrow">Nearby now</p>
-            <h2>Near You</h2>
+            <p class="eyebrow">All restaurants</p>
+            <h2>Order across Telangana</h2>
         </div>
-        <p class="section-copy">FoodSprint shows nearby restaurants first, filters them within a live radius, and falls back to your Telangana city if location access is denied.</p>
     </div>
-
-    <div class="filters">
-        <input type="search" id="search-input" placeholder="Search restaurants or cities">
-        <select id="food-filter">
-            <option value="">All categories</option>
-            <option value="veg">Veg</option>
-            <option value="non-veg">Non-veg</option>
-            <option value="diet">Diet</option>
-        </select>
-        <select id="rating-filter">
-            <option value="0">All ratings</option>
-            <option value="4.0">4.0+</option>
-            <option value="4.5">4.5+</option>
-            <option value="4.7">4.7+</option>
-        </select>
-        <label class="toggle">
-            <input type="checkbox" id="healthy-filter">
-            <span>Healthy only</span>
-        </label>
-        <select id="radius-filter">
-            <option value="10">Within 10 km</option>
-            <option value="5">Within 5 km</option>
-            <option value="25">Within 25 km</option>
-        </select>
-        <button type="button" class="btn btn-secondary" id="location-btn">Use my location</button>
+    <div class="restaurant-grid" id="restaurantList">
+        {% for restaurant in restaurants %}
+            <article
+                class="restaurant-card"
+                data-name="{{ restaurant.name|lower }}"
+                data-city="{{ restaurant.city|lower }}"
+                data-cuisine="{{ restaurant.cuisine|lower }}"
+            >
+                <img loading="lazy" src="{{ restaurant.image_url }}" alt="{{ restaurant.name }}">
+                <div class="restaurant-card-overlay">
+                    <div class="restaurant-topline">
+                        <div>
+                            <h3>{{ restaurant.name }}</h3>
+                            <p>{{ restaurant.area }}, {{ restaurant.city }}</p>
+                        </div>
+                        <strong>⭐ {{ restaurant.rating }}</strong>
+                    </div>
+                    <div class="nutrition-row">
+                        <span class="tag">{{ restaurant.category|title }}</span>
+                        <span class="tag">{{ restaurant.delivery_time }} mins</span>
+                    </div>
+                    <p>{{ restaurant.cuisine }}</p>
+                    <div class="menu-footer">
+                        <span>Order tracking enabled</span>
+                        <a href="{{ url_for('main.restaurant_detail', restaurant_id=restaurant.id) }}" class="btn btn-mini">View Menu</a>
+                    </div>
+                </div>
+            </article>
+        {% endfor %}
     </div>
-
-    <div id="location-status" class="location-status" data-fallback-city="{{ fallback_city }}">Showing Telangana restaurants. Enable GPS to show nearby restaurants, or browse the best picks in {{ fallback_city }}.</div>
-    <div class="restaurant-grid" id="restaurant-grid"></div>
 </section>
 
 <section class="section recommendation-strip">
     <div class="section-heading">
         <div>
             <p class="eyebrow">Smart suggestions</p>
-            <h2>{% if nav_user %}Picked from your order signals{% else %}Trending healthy picks{% endif %}</h2>
+            <h2>{% if nav_user %}Recommended for you{% else %}Healthy picks to try{% endif %}</h2>
         </div>
     </div>
     <div class="menu-grid compact-grid">
@@ -152,4 +234,9 @@
         {% endfor %}
     </div>
 </section>
+{% endblock %}
+
+{% block scripts %}
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 {% endblock %}

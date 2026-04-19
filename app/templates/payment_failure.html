@@ -5,11 +5,16 @@
     <div class="confirmation-card">
         <p class="eyebrow">Payment issue</p>
         <h1>Payment could not be completed</h1>
-        <p>Your payment was cancelled or failed. {% if order %}Order #{{ order.id }} is marked as failed and can be retried or completed using direct UPI.{% endif %}</p>
+        <p>
+            Your payment was cancelled or failed.
+            {% if order %}
+                Order #{{ order.id }} is marked as failed and can be retried.
+            {% endif %}
+        </p>
         <div class="hero-actions">
             <a href="{{ url_for('main.checkout') }}" class="btn btn-primary">Try again</a>
             {% if order %}
-                <a href="{{ url_for('main.track_order', order_id=order.id) }}" class="btn btn-secondary">View order</a>
+                <a href="{{ url_for('main.order_detail', order_id=order.id) }}" class="btn btn-secondary">View order</a>
             {% else %}
                 <a href="{{ url_for('main.cart') }}" class="btn btn-secondary">Back to cart</a>
             {% endif %}

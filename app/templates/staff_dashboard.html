@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Staff Dashboard{% endblock %}
+{% block content %}
+<section class="section">
+    <div class="section-heading">
+        <div>
+            <p class="eyebrow">Staff panel</p>
+            <h1>Welcome, {{ staff.name }}</h1>
+        </div>
+        <p class="section-copy">Staff can update order progress one step at a time.</p>
+    </div>
+</section>
+
+<section class="section">
+    <div class="admin-card">
+        <p class="eyebrow">Active orders</p>
+        <h2>Update order status</h2>
+        <div class="admin-list">
+            {% for order in orders %}
+                <div class="order-admin-card">
+                    <div class="summary-row">
+                        <span>Order #{{ order.id }} • {{ order.user.name }}</span>
+                        <strong>{{ order.status.replace('_', ' ') }}</strong>
+                    </div>
+                    <p class="order-items">{{ order.order_items|map(attribute='menu_item.name')|join(', ') }}</p>
+                    <form method="post" action="{{ url_for('main.update_order', order_id=order.id) }}">
+                        <button class="btn btn-primary" type="submit" {% if order.status == 'DELIVERED' %}disabled{% endif %}>
+                            {% if order.status == 'DELIVERED' %}Completed{% else %}Move to next stage{% endif %}
+                        </button>
+                    </form>
+                </div>
+            {% else %}
+                <p>No orders yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}

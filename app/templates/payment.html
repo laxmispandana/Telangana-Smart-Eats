@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}UPI Payment{% endblock %}
+{% block content %}
+<section class="section">
+    <div class="confirmation-card">
+        <p class="eyebrow">UPI payment</p>
+        <h1>Scan and pay</h1>
+        <img src="{{ qr_code }}" alt="UPI QR Code" class="upi-qr-image">
+        <p><strong>UPI ID:</strong> {{ upi_id }}</p>
+        <p><strong>Amount:</strong> Rs. {{ "%.0f"|format(amount) }}</p>
+        <button class="btn btn-primary" id="confirm-upi-btn" type="button">I have paid</button>
+        <p id="payment-confirm-status" class="payment-status">Click after completing the payment in your UPI app.</p>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById("confirm-upi-btn")?.addEventListener("click", async () => {
+    const status = document.getElementById("payment-confirm-status");
+    status.textContent = "Confirming payment...";
+    const response = await fetch("{{ url_for('main.payment_confirm') }}", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ order_id: {{ order_id }} })
+    });
+    const data = await response.json();
+    if (data.ok) {
+        window.location.href = data.redirect_url;
+    } else {
+        status.textContent = "Unable to confirm payment right now.";
+    }
+});
+</script>
+{% endblock %}

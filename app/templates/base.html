@@ -7,8 +7,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    {% block head_extra %}{% endblock %}
 </head>
 <body>
     <header class="site-header">
@@ -20,29 +20,30 @@
             </div>
         </a>
         <div class="nav-search-shell">
-            <input type="search" id="nav-search" class="nav-search-input" placeholder="Search biryani, dosa, healthy bowls">
+            <input type="search" id="nav-search" class="nav-search-input" placeholder="Search restaurants or cuisines">
         </div>
         <nav class="nav-links">
             <a href="{{ url_for('main.index') }}">Explore</a>
-            <a href="{{ url_for('main.diet') }}">AI Diet Planner</a>
+            <a href="{{ url_for('main.diet') }}">Diet AI</a>
             {% if nav_user %}
-                <a href="{{ url_for('main.track_order', order_id=nav_user.orders[-1].id) if nav_user.orders else url_for('main.cart') }}">Track Order</a>
-            {% endif %}
-            {% if admin_logged_in %}
-                <a href="{{ url_for('main.admin_dashboard') }}">Admin</a>
-            {% else %}
-                <a href="{{ url_for('main.admin_login') }}">Admin Login</a>
-            {% endif %}
-            <a href="{{ url_for('main.cart') }}" class="cart-link">Cart <span class="cart-badge" id="cart-badge">{{ cart_meta.count }}</span></a>
-            {% if nav_user %}
+                <a href="{{ url_for('main.cart') }}" class="cart-link">Cart <span class="cart-badge" id="cart-badge">{{ cart_meta.count }}</span></a>
                 <span class="user-chip">{{ nav_user.name }}</span>
                 <a href="{{ url_for('main.logout') }}">Logout</a>
             {% else %}
                 <a href="{{ url_for('main.login') }}">Login</a>
                 <a href="{{ url_for('main.signup') }}" class="btn btn-primary">Sign up</a>
             {% endif %}
-            {% if admin_logged_in %}
+            {% if nav_admin %}
+                <a href="{{ url_for('main.admin_dashboard') }}">Admin</a>
                 <a href="{{ url_for('main.admin_logout') }}">Admin Logout</a>
+            {% else %}
+                <a href="{{ url_for('main.admin_login') }}">Admin Login</a>
+            {% endif %}
+            {% if nav_staff %}
+                <a href="{{ url_for('main.staff_dashboard') }}">Staff</a>
+                <a href="{{ url_for('main.staff_logout') }}">Staff Logout</a>
+            {% else %}
+                <a href="{{ url_for('main.staff_login') }}">Staff Login</a>
             {% endif %}
         </nav>
     </header>
@@ -61,48 +62,39 @@
         {% block content %}{% endblock %}
     </main>
 
-    <a href="{{ url_for('main.cart') }}" class="floating-cart-button" id="floating-cart-button">
-        <span>Cart</span>
-        <strong id="floating-cart-count">{{ cart_meta.count }}</strong>
-    </a>
-
-    <aside class="mini-cart" id="mini-cart">
-        <div class="mini-cart-header">
-            <strong>Cart</strong>
-            <button type="button" class="mini-cart-close" id="mini-cart-close">&times;</button>
-        </div>
-        <div class="mini-cart-body" id="mini-cart-body">
-            {% if cart_meta.entries %}
-                {% for item in cart_meta.entries[:3] %}
-                    <div class="mini-cart-item">
-                        <img src="{{ item.menu_item.image_url }}" alt="{{ item.menu_item.name }}">
-                        <div>
-                            <strong>{{ item.menu_item.name }}</strong>
-                            <p>{{ item.quantity }} x Rs. {{ "%.0f"|format(item.menu_item.price) }}</p>
+    {% if nav_user %}
+        <a href="{{ url_for('main.cart') }}" class="floating-cart-button">
+            <span>Cart</span>
+            <strong>{{ cart_meta.count }}</strong>
+        </a>
+        <aside class="mini-cart" id="miniCart" aria-live="polite">
+            <div class="mini-cart-header">
+                <strong>Your cart</strong>
+                <button class="mini-cart-close" id="miniCartClose" type="button" aria-label="Close mini cart">×</button>
+            </div>
+            <div class="mini-cart-body" id="miniCartBody">
+                {% if cart_meta.entries %}
+                    {% for entry in cart_meta.entries %}
+                        <div class="mini-cart-item">
+                            <img src="{{ entry.menu_item.image_url }}" alt="{{ entry.menu_item.name }}">
+                            <div>
+                                <strong>{{ entry.menu_item.name }}</strong>
+                                <p>{{ entry.quantity }} x Rs. {{ "%.0f"|format(entry.menu_item.price) }}</p>
+                            </div>
                         </div>
-                    </div>
-                {% endfor %}
-            {% else %}
-                <p class="mini-cart-empty">Your cart is empty.</p>
-            {% endif %}
-        </div>
-        <div class="mini-cart-footer">
-            <span>{{ cart_meta.count }} item(s)</span>
-            <strong>Rs. {{ "%.0f"|format(cart_meta.total) }}</strong>
-            <a href="{{ url_for('main.cart') }}" class="btn btn-primary summary-btn">Open cart</a>
-        </div>
-    </aside>
+                    {% endfor %}
+                {% else %}
+                    <p class="mini-cart-empty">Your cart is empty.</p>
+                {% endif %}
+            </div>
+            <div class="mini-cart-footer">
+                <span>Total</span>
+                <strong id="miniCartTotal">Rs. {{ "%.0f"|format(cart_meta.total) }}</strong>
+                <a href="{{ url_for('main.cart') }}" class="btn btn-mini">Open cart</a>
+            </div>
+        </aside>
+    {% endif %}
 
-    <section class="toast-stack" id="toast-stack"></section>
-
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js" crossorigin="anonymous"></script>
-    <script>
-        window.foodSprintRealtime = {
-            hasUser: {{ 'true' if nav_user else 'false' }},
-            hasAdmin: {{ 'true' if admin_logged_in else 'false' }}
-        };
-    </script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     {% block scripts %}{% endblock %}
 </body>

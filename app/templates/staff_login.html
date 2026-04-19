@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Staff Login{% endblock %}
+{% block content %}
+<section class="section auth-shell">
+    <div class="auth-card">
+        <p class="eyebrow">Staff Access</p>
+        <h1>Staff login</h1>
+        <form method="post">
+            <label>Email
+                <input type="email" name="email" required>
+            </label>
+            <label>Password
+                <input type="password" name="password" required>
+            </label>
+            <button class="btn btn-primary" type="submit">Login as staff</button>
+        </form>
+    </div>
+</section>
+{% endblock %}

@@ -5,9 +5,9 @@
     <div class="section-heading">
         <div>
             <p class="eyebrow">Checkout</p>
-            <h1>Choose your payment method</h1>
+            <h1>Pay using UPI QR</h1>
         </div>
-        <p class="section-copy">FoodSprint supports Razorpay test checkout, UPI intent, QR payments, and a demo fallback for evaluation.</p>
+        <p class="section-copy">This keeps the demo simple and reliable: generate a QR, click “I have paid”, and continue to order tracking.</p>
     </div>
     <div class="checkout-grid">
         <div class="summary-card">
@@ -23,65 +23,22 @@
                 <strong>Rs. {{ "%.0f"|format(cart_data.total) }}</strong>
             </div>
         </div>
-
         <div class="payment-card">
             <div class="payment-option-card">
-                <h3>Razorpay Smart Checkout</h3>
-                <p>{% if razorpay_enabled %}Open Razorpay in test mode for UPI, card, wallet, or netbanking.{% else %}Razorpay keys are not configured yet. Use direct UPI or demo fallback below.{% endif %}</p>
-                <div class="payment-method-pills">
-                    <button type="button" class="payment-pill active" data-preferred-method="UPI">UPI</button>
-                    <button type="button" class="payment-pill" data-preferred-method="Card">Card</button>
-                </div>
-                <button class="btn btn-primary summary-btn" id="razorpay-pay-btn" {% if not razorpay_enabled %}disabled{% endif %}>Pay with Razorpay</button>
-                <p id="payment-status" class="payment-status">{% if razorpay_enabled %}Secure test checkout is ready.{% else %}Direct UPI is available until Razorpay test keys are added.{% endif %}</p>
+                <h3>UPI QR payment</h3>
+                <p>{% if admin_upi_id %}Admin UPI ID: {{ admin_upi_id }}{% else %}Admin has not configured a UPI ID yet.{% endif %}</p>
+                <form method="post" action="{{ url_for('main.payment_upi') }}">
+                    <button class="btn btn-primary summary-btn" type="submit" {% if not admin_upi_id %}disabled{% endif %}>Generate UPI QR</button>
+                </form>
             </div>
-
             <div class="payment-option-card">
-                <h3>Direct UPI</h3>
-                <p>Enter your UPI ID, generate a QR code, or jump into PhonePe, GPay, or Paytm.</p>
-                <label>Your UPI ID (optional)
-                    <input type="text" id="upi-id-input" placeholder="example@upi">
-                </label>
-                <button class="btn btn-secondary summary-btn" type="button" id="upi-create-btn" {% if not manual_upi_enabled %}disabled{% endif %}>Generate UPI request</button>
-                <p class="payment-status">{% if manual_upi_enabled %}Payee: {{ payee_upi_name }} ({{ payee_upi_id }}){% else %}Manual UPI is not configured yet.{% endif %}</p>
+                <h3>What happens next</h3>
+                <p>1. QR is generated</p>
+                <p>2. User clicks “I have paid”</p>
+                <p>3. Payment is marked successful with a demo transaction ID</p>
+                <p>4. Order tracking starts immediately</p>
             </div>
-
-            <form method="post" class="payment-fallback-form">
-                <h3>Demo fallback</h3>
-                <p>Use this path if you are evaluating the app without live payment credentials.</p>
-                <button class="btn btn-secondary summary-btn" type="submit">Complete demo payment</button>
-            </form>
         </div>
     </div>
 </section>
-
-<section class="payment-modal" id="upi-modal" hidden>
-    <div class="payment-modal-backdrop" data-close-upi-modal></div>
-    <div class="payment-modal-card">
-        <button type="button" class="payment-modal-close" data-close-upi-modal>&times;</button>
-        <p class="eyebrow">UPI payment</p>
-        <h2>Scan or open your UPI app</h2>
-        <img id="upi-qr-image" class="upi-qr-image" alt="UPI QR code">
-        <div class="upi-app-grid" id="upi-app-links"></div>
-        <label>Transaction ID / UTR
-            <input type="text" id="upi-transaction-id" placeholder="Enter the UPI reference after payment">
-        </label>
-        <button type="button" class="btn btn-primary summary-btn" id="upi-confirm-btn">I have paid</button>
-        <p class="payment-status" id="upi-modal-status">Your order stays pending until the payment is verified.</p>
-    </div>
-</section>
-{% endblock %}
-{% block scripts %}
-<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-<script>
-    window.foodSprintCheckout = {
-        enabled: {{ 'true' if razorpay_enabled else 'false' }},
-        manualUpiEnabled: {{ 'true' if manual_upi_enabled else 'false' }},
-        verifyUrl: "{{ url_for('main.verify_razorpay_payment') }}",
-        createOrderUrl: "{{ url_for('main.create_razorpay_checkout_order') }}",
-        failureUrl: "{{ url_for('main.payment_failure') }}",
-        createUpiUrl: "{{ url_for('main.create_manual_upi_payment') }}",
-        confirmUpiUrl: "{{ url_for('main.confirm_manual_upi_payment') }}"
-    };
-</script>
 {% endblock %}
