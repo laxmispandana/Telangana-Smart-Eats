@@ -7,7 +7,7 @@
             <p class="eyebrow">Order tracking</p>
             <h1>Track order #{{ order.id }}</h1>
         </div>
-        <p class="section-copy">Follow your order from placed to delivered.</p>
+        <p class="section-copy">Live ETA, rider details, support chat, cancellation, refund flow, and split-order visibility all stay here.</p>
     </div>
     <div class="tracking-grid">
         <div class="summary-card">
@@ -15,18 +15,109 @@
             <div class="summary-row"><span>Payment</span><strong>{{ order.payment_status }}</strong></div>
             <div class="summary-row"><span>Method</span><strong>{{ order.latest_payment.method if order.latest_payment else 'UPI' }}</strong></div>
             <div class="summary-row"><span>Transaction</span><strong>{{ order.latest_payment.transaction_id if order.latest_payment and order.latest_payment.transaction_id else 'Pending' }}</strong></div>
+            <div class="summary-row"><span>Mode</span><strong>{{ order.fulfillment.fulfillment_mode|title if order.fulfillment else 'Delivery' }}</strong></div>
+            <div class="summary-row"><span>ETA</span><strong>{{ order.fulfillment.eta_minutes if order.fulfillment else 0 }} mins</strong></div>
+            <div class="summary-row"><span>Split</span><strong>{{ order.fulfillment.split_count if order.fulfillment else 1 }} people</strong></div>
+            <div class="summary-row"><span>Per person</span><strong>Rs. {{ "%.0f"|format(order.fulfillment.split_amount if order.fulfillment else order.total_amount) }}</strong></div>
+            <div class="summary-row"><span>Address</span><strong>{{ order.fulfillment.address_snapshot if order.fulfillment and order.fulfillment.address_snapshot else 'Pickup order' }}</strong></div>
+            <div class="summary-row"><span>Rider</span><strong>{{ order.fulfillment.rider_name if order.fulfillment and order.fulfillment.rider_name else 'Assigned once out for delivery' }}</strong></div>
+            <div class="summary-row"><span>Contact</span><strong>{{ order.fulfillment.rider_phone if order.fulfillment and order.fulfillment.rider_phone else 'Pending' }}</strong></div>
+            <div class="summary-row"><span>Loyalty earned</span><strong>{{ order.fulfillment.loyalty_points_earned if order.fulfillment else 0 }} pts</strong></div>
             <div class="summary-row total-row"><span>Total</span><strong>Rs. {{ "%.0f"|format(order.total_amount) }}</strong></div>
+            {% if can_cancel %}
+                <form method="post" action="{{ url_for('main.cancel_order', order_id=order.id) }}">
+                    <label>Cancel reason
+                        <input type="text" name="reason" placeholder="Changed my mind, wrong item, long wait">
+                    </label>
+                    <button class="btn btn-secondary summary-btn" type="submit">Cancel and start refund flow</button>
+                </form>
+            {% endif %}
         </div>
         <div class="timeline-card">
             {% for step in order_steps %}
-                {% set is_active = order_steps.index(step) <= order_steps.index(order.status) %}
+                {% set is_active = order.status != 'CANCELLED' and order_steps.index(step) <= order_steps.index(order.status) %}
                 <div class="timeline-step {% if is_active %}timeline-step-active{% endif %}">
                     <span class="timeline-dot"></span>
                     <div>
                         <strong>{{ step.replace('_', ' ') }}</strong>
-                        <p>{% if step == order.status %}Current stage{% else %}Waiting{% endif %}</p>
+                        <p>{% if order.status == step %}Current stage{% else %}Waiting{% endif %}</p>
                     </div>
                 </div>
+            {% endfor %}
+            {% if order.status == 'CANCELLED' %}
+                <div class="timeline-step timeline-step-active">
+                    <span class="timeline-dot"></span>
+                    <div>
+                        <strong>Cancelled</strong>
+                        <p>Refund and support flow are in progress.</p>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<section class="section admin-grid">
+    <div class="admin-card">
+        <p class="eyebrow">Notifications</p>
+        <h2>Status alerts</h2>
+        <div class="admin-list">
+            {% for note in notifications %}
+                <div class="review-card">
+                    <div class="review-top">
+                        <strong>{{ note.title }}</strong>
+                        <span>{{ note.channel|upper }}</span>
+                    </div>
+                    <p>{{ note.body }}</p>
+                </div>
+            {% else %}
+                <p>No notifications yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="admin-card">
+        <p class="eyebrow">Support</p>
+        <h2>Help chat and issue reporting</h2>
+        <form method="post" action="{{ url_for('main.create_support_ticket') }}">
+            <input type="hidden" name="order_id" value="{{ order.id }}">
+            <label>Issue type
+                <select name="issue_type">
+                    <option value="help">Help</option>
+                    <option value="missing_item">Missing item</option>
+                    <option value="late_order">Late order</option>
+                    <option value="refund">Refund</option>
+                </select>
+            </label>
+            <label>Subject
+                <input type="text" name="subject" required placeholder="Need help with this order">
+            </label>
+            <label>Message
+                <textarea name="message" rows="4" required placeholder="Describe the issue you want support to handle."></textarea>
+            </label>
+            <button class="btn btn-primary" type="submit">Open support ticket</button>
+        </form>
+
+        <div class="admin-list">
+            {% for ticket in tickets %}
+                <div class="order-admin-card">
+                    <div class="summary-row">
+                        <span>#{{ ticket.id }} • {{ ticket.subject }}</span>
+                        <strong>{{ ticket.status }}</strong>
+                    </div>
+                    <p>{{ ticket.issue_type|replace('_', ' ')|title }}</p>
+                    {% for message in ticket.messages %}
+                        <p class="review-item"><strong>{{ message.sender_role|title }}:</strong> {{ message.message }}</p>
+                    {% endfor %}
+                    <form method="post" action="{{ url_for('main.reply_support_ticket', ticket_id=ticket.id) }}">
+                        <label>Reply
+                            <input type="text" name="message" placeholder="Add more context for support">
+                        </label>
+                        <button class="btn btn-mini" type="submit">Send reply</button>
+                    </form>
+                </div>
+            {% else %}
+                <p>No support tickets for this order.</p>
             {% endfor %}
         </div>
     </div>

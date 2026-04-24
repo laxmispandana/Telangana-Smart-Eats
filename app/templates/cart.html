@@ -7,6 +7,7 @@
             <p class="eyebrow">FoodSprint Cart</p>
             <h1>Your order basket</h1>
         </div>
+        <p class="section-copy">Macros, customizations, and loyalty-ready totals stay visible before checkout.</p>
     </div>
     {% if cart_data.entries %}
         <div class="cart-layout">
@@ -22,6 +23,13 @@
                                     <span class="tag">{{ tag }}</span>
                                 {% endfor %}
                             </div>
+                            <p class="review-item">{{ item.customization_summary }}</p>
+                            <div class="nutrition-row">
+                                <span>{{ item.nutrition.protein_g }}g protein</span>
+                                <span>{{ item.nutrition.carbs_g }}g carbs</span>
+                                <span>{{ item.nutrition.fat_g }}g fat</span>
+                                <span>{{ item.nutrition.calories }} kcal</span>
+                            </div>
                         </div>
                         <div class="menu-quantity-controls" data-cart-controls data-item-id="{{ item.menu_item.id }}">
                             <button class="qty-btn" type="button" data-cart-minus data-item-id="{{ item.menu_item.id }}">-</button>
@@ -35,6 +43,10 @@
             <aside class="summary-card">
                 <h3>Price summary</h3>
                 <div class="summary-row"><span>Items</span><strong id="cartPageCount">{{ cart_data.count }}</strong></div>
+                <div class="summary-row"><span>Protein</span><strong id="cartProteinTotal">{{ cart_data.protein_total }}g</strong></div>
+                <div class="summary-row"><span>Carbs</span><strong id="cartCarbsTotal">{{ cart_data.carbs_total }}g</strong></div>
+                <div class="summary-row"><span>Fat</span><strong id="cartFatTotal">{{ cart_data.fat_total }}g</strong></div>
+                <div class="summary-row"><span>Calories</span><strong id="cartCaloriesTotal">{{ cart_data.calories_total }}</strong></div>
                 <div class="summary-row"><span>Total</span><strong id="cartPageTotal">Rs. {{ "%.0f"|format(cart_data.total) }}</strong></div>
                 <a href="{{ url_for('main.checkout') }}" class="btn btn-primary summary-btn">Proceed to payment</a>
             </aside>

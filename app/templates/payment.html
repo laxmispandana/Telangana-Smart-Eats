@@ -6,10 +6,22 @@
         <p class="eyebrow">UPI payment</p>
         <h1>Scan and pay</h1>
         <img src="{{ qr_code }}" alt="UPI QR Code" class="upi-qr-image">
-        <p><strong>UPI ID:</strong> {{ upi_id }}</p>
-        <p><strong>Amount:</strong> Rs. {{ "%.0f"|format(amount) }}</p>
+        <div class="detail-metrics">
+            <span><strong>UPI ID:</strong> {{ upi_id }}</span>
+            <span><strong>Amount:</strong> Rs. {{ "%.0f"|format(amount) }}</span>
+            <span><strong>Order:</strong> #{{ order.id }}</span>
+        </div>
+        <div class="summary-card">
+            <div class="summary-row"><span>Mode</span><strong>{{ fulfillment.fulfillment_mode|title }}</strong></div>
+            <div class="summary-row"><span>Scheduled</span><strong>{{ fulfillment.scheduled_for.strftime('%d %b %Y %I:%M %p') if fulfillment.scheduled_for else 'As soon as possible' }}</strong></div>
+            <div class="summary-row"><span>Address</span><strong>{{ fulfillment.address_snapshot or 'Pickup from restaurant' }}</strong></div>
+            <div class="summary-row"><span>Promo</span><strong>{{ fulfillment.promo_code or 'None' }}</strong></div>
+            <div class="summary-row"><span>Split count</span><strong>{{ fulfillment.split_count }}</strong></div>
+            <div class="summary-row"><span>Per person</span><strong>Rs. {{ "%.0f"|format(fulfillment.split_amount) }}</strong></div>
+            <div class="summary-row"><span>Loyalty earned</span><strong>{{ fulfillment.loyalty_points_earned }} pts</strong></div>
+        </div>
+        <p id="payment-confirm-status" class="payment-status">Click after completing the payment in your UPI app. WhatsApp, SMS, and email logs will be created once the payment is confirmed.</p>
         <button class="btn btn-primary" id="confirm-upi-btn" type="button">I have paid</button>
-        <p id="payment-confirm-status" class="payment-status">Click after completing the payment in your UPI app.</p>
     </div>
 </section>
 {% endblock %}
@@ -21,13 +33,13 @@ document.getElementById("confirm-upi-btn")?.addEventListener("click", async () =
     const response = await fetch("{{ url_for('main.payment_confirm') }}", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ order_id: {{ order_id }} })
+        body: JSON.stringify({ order_id: {{ order.id }} })
     });
     const data = await response.json();
     if (data.ok) {
         window.location.href = data.redirect_url;
     } else {
-        status.textContent = "Unable to confirm payment right now.";
+        status.textContent = data.message || "Unable to confirm payment right now.";
     }
 });
 </script>

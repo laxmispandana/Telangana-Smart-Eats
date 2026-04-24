@@ -7,10 +7,24 @@
         <h1>{{ restaurant.name }}</h1>
         <p>{{ restaurant.description }}</p>
         <div class="detail-metrics">
-            <span>⭐ {{ restaurant.rating }}</span>
+            <span>★ {{ restaurant.rating }}</span>
             <span>{{ restaurant.cuisine }}</span>
             <span>{{ restaurant.delivery_time }} mins</span>
             <span>{{ restaurant.category|title }}</span>
+            {% if restaurant.profile %}<span>{{ restaurant.profile.offers_text }}</span>{% endif %}
+        </div>
+        <div class="hero-actions">
+            {% if nav_user %}
+                <form method="post" action="{{ url_for('main.toggle_favorite', restaurant_id=restaurant.id) }}">
+                    <button class="btn btn-secondary" type="submit">{% if is_favorite %}Saved to favorites{% else %}Save as favorite{% endif %}</button>
+                </form>
+            {% endif %}
+            {% if ordered_here %}
+                <span class="tag">Verified order history</span>
+            {% endif %}
+            {% if restaurant.profile and restaurant.profile.pickup_enabled %}
+                <span class="tag">Pickup available</span>
+            {% endif %}
         </div>
     </div>
     <img loading="lazy" src="{{ restaurant.image_url }}" alt="{{ restaurant.name }}" class="detail-cover">
@@ -29,7 +43,7 @@
                 <img loading="lazy" src="{{ item.image_url }}" alt="{{ item.name }}">
                 <div class="menu-card-body">
                     <div class="menu-topline">
-                        {% for tag in menu_item_tags(item)[:2] %}
+                        {% for tag in menu_item_tags(item)[:3] %}
                             <span class="tag">{{ tag }}</span>
                         {% endfor %}
                     </div>
@@ -45,14 +59,15 @@
     <div class="section-heading">
         <div>
             <p class="eyebrow">Menu</p>
-            <h2>Restaurant menu</h2>
+            <h2>Menu customization and nutrition</h2>
         </div>
+        <p class="section-copy">Choose spice level, remove ingredients, add combo upgrades, and keep allergies visible before adding to cart.</p>
     </div>
     <div class="menu-list">
         {% for item in menu_items %}
             {% set item_qty = cart_quantities.get(item.id|string, 0) %}
             {% set tags = menu_item_tags(item) %}
-            <article class="menu-list-item {% if 'Popular 🔥' in tags %}menu-list-item-featured{% endif %}">
+            <article class="menu-list-item {% if 'Popular' in tags %}menu-list-item-featured{% endif %}">
                 <div class="menu-list-copy">
                     <div class="menu-topline">
                         {% for tag in tags %}
@@ -65,6 +80,44 @@
                         <span>Rs. {{ "%.0f"|format(item.price) }}</span>
                         <span>{{ item.calories or 'Balanced' }} kcal</span>
                         <span>{{ item.food_type|title }}</span>
+                        {% if item.nutrition %}
+                            <span>{{ item.nutrition.protein_g }}g protein</span>
+                            <span>{{ item.nutrition.carbs_g }}g carbs</span>
+                            <span>{{ item.nutrition.fat_g }}g fat</span>
+                        {% endif %}
+                    </div>
+                    <div class="menu-custom-grid" data-customization-form data-item-id="{{ item.id }}">
+                        <label>Spice level
+                            <select data-customize="spice_level">
+                                {% for spice in spice_levels %}
+                                    <option value="{{ spice }}" {% if spice == 'Medium' %}selected{% endif %}>{{ spice }}</option>
+                                {% endfor %}
+                            </select>
+                        </label>
+                        <label>Remove ingredients
+                            <input type="text" data-customize="removed_ingredients" placeholder="Onion, garlic, nuts">
+                        </label>
+                        <label>Allergy note
+                            <input type="text" data-customize="allergy_note" placeholder="{{ item.nutrition.allergens if item.nutrition else 'Mention allergies' }}">
+                        </label>
+                        {% for option in item.options if option.option_type == 'combo' %}
+                            <label>{{ option.title }}
+                                <select data-customize="combo_upgrade">
+                                    {% for choice in option.choices.split('|') %}
+                                        <option value="{{ choice }}">{{ choice }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                        {% endfor %}
+                        {% for option in item.options if option.option_type == 'addon' %}
+                            <label>{{ option.title }}
+                                <select data-customize="selected_addons" multiple>
+                                    {% for choice in option.choices.split('|') %}
+                                        <option value="{{ choice }}">{{ choice }}</option>
+                                    {% endfor %}
+                                </select>
+                            </label>
+                        {% endfor %}
                     </div>
                 </div>
                 <div class="menu-list-media">
@@ -89,12 +142,22 @@
             </article>
         {% endfor %}
     </div>
+    {% if unavailable_menu %}
+        <div class="summary-card">
+            <h3>Temporarily unavailable</h3>
+            <div class="nutrition-row">
+                {% for item in unavailable_menu %}
+                    <span class="tag">{{ item.name }}</span>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
 </section>
 
 <section class="section admin-grid">
     <div class="admin-card">
         <p class="eyebrow">Customer reviews</p>
-        <h2>What people are saying</h2>
+        <h2>Verified reviews and photos</h2>
         <div class="admin-list">
             {% for review in reviews %}
                 <div class="review-card">
@@ -102,7 +165,14 @@
                         <strong>{{ review.user.name }}</strong>
                         <span>{{ review.rating }}/5</span>
                     </div>
+                    <div class="nutrition-row">
+                        {% if verified_reviews.get(review.id) %}<span class="tag">Verified Order</span>{% endif %}
+                        {% if review.photo %}<span class="tag">Photo Review</span>{% endif %}
+                    </div>
                     <p>{{ review.comment }}</p>
+                    {% if review.photo %}
+                        <img src="{{ review.photo.image_url }}" alt="Review photo for {{ restaurant.name }}" class="review-image">
+                    {% endif %}
                 </div>
             {% else %}
                 <p>No reviews yet. Be the first to share feedback.</p>
@@ -126,6 +196,9 @@
                 </label>
                 <label>Comment
                     <textarea name="comment" rows="5" required placeholder="Share your experience with the food, delivery, and presentation."></textarea>
+                </label>
+                <label>Photo URL
+                    <input type="url" name="photo_url" placeholder="https://example.com/photo.jpg">
                 </label>
                 <button class="btn btn-primary" type="submit">Submit review</button>
             </form>

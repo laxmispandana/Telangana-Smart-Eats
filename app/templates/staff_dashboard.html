@@ -7,11 +7,11 @@
             <p class="eyebrow">Staff panel</p>
             <h1>Welcome, {{ staff.name }}</h1>
         </div>
-        <p class="section-copy">Staff can update order progress one step at a time.</p>
+        <p class="section-copy">Staff can update live ETA stages, assign riders, and keep an eye on open support escalations.</p>
     </div>
 </section>
 
-<section class="section">
+<section class="section admin-grid">
     <div class="admin-card">
         <p class="eyebrow">Active orders</p>
         <h2>Update order status</h2>
@@ -23,14 +23,37 @@
                         <strong>{{ order.status.replace('_', ' ') }}</strong>
                     </div>
                     <p class="order-items">{{ order.order_items|map(attribute='menu_item.name')|join(', ') }}</p>
+                    <div class="nutrition-row">
+                        <span class="tag">{{ order.fulfillment.fulfillment_mode|title if order.fulfillment else 'Delivery' }}</span>
+                        <span class="tag">ETA {{ order.fulfillment.eta_minutes if order.fulfillment else 0 }} mins</span>
+                        <span class="tag">{{ order.payment_status }}</span>
+                    </div>
                     <form method="post" action="{{ url_for('main.update_order', order_id=order.id) }}">
-                        <button class="btn btn-primary" type="submit" {% if order.status == 'DELIVERED' %}disabled{% endif %}>
-                            {% if order.status == 'DELIVERED' %}Completed{% else %}Move to next stage{% endif %}
+                        <button class="btn btn-primary" type="submit" {% if order.status in ['DELIVERED', 'CANCELLED'] %}disabled{% endif %}>
+                            {% if order.status == 'DELIVERED' %}Completed{% elif order.status == 'CANCELLED' %}Cancelled{% else %}Move to next stage{% endif %}
                         </button>
                     </form>
                 </div>
             {% else %}
                 <p>No orders yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="admin-card">
+        <p class="eyebrow">Support escalations</p>
+        <h2>Open ticket watchlist</h2>
+        <div class="admin-list">
+            {% for ticket in tickets %}
+                <div class="review-card">
+                    <div class="review-top">
+                        <strong>#{{ ticket.id }} • {{ ticket.subject }}</strong>
+                        <span>{{ ticket.status }}</span>
+                    </div>
+                    <p>{{ ticket.message }}</p>
+                </div>
+            {% else %}
+                <p>No escalated tickets right now.</p>
             {% endfor %}
         </div>
     </div>

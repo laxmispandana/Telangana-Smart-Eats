@@ -1,0 +1,1068 @@
+ 
+Parallel Air Quality Prediction using Hybrid LSTM and
+XGBoost
+A Project Report
+Submitted in partial 
+fulfillment
+ of the course
+Course Name:
+ High Performance Computing
+Course Code:
+ 23CS302PC303
+Submitted by:
+BOLLAM LAXMI SPANDANA
+2303A52094
+Under the supervision of
+Dr. Durgesh Nandan
+Associate Professor, 
+SoCS
+ &amp; AI
+Academic Year: 2025-2026
+Department of Computer Science and Engineering and Artificial Intelligence
+SR University
+Warangal,Telangana
+,India
+.
+ 
+ 
+ 
+ 
+ 
+INDEX
+Abstract ..................................................... 3
+Introduction ............................................... 3  
+Background and HOC Concepts...…
+…..
+....... 
+5
+ 
+Problem Statement ...........................…
+..
+..... 
+7
+  
+Objectives ............................................…
+.
+... 
+8
+  
+System Architecture ..............................
+…
+.
+.
+ 
+8
+  
+Methodolog
+y
+...................…
+.
+...................…
+….
+ 
+9
+ 
+Implementation 
+with Code
+........................…
+..
+...
+ 1
+1
+Results and Output ...........................…
+...
+.... 15 
+Analysis and Discussion .....................…
+…..
+.. 
+20
+  
+Advantages and Limitations……………………….
+21
+Conclusion .........................................…
+…
+.
+....
+ 2
+2
+ 
+Future Work .......................................…
+…
+..
+...
+ 2
+3
+References .........................................…
+…..
+.... 2
+4
+  
+1. Abstract
+H
+ybrid combination of 
+XGBoost
+ and Long Short-Term Memory (LSTM) networks. Air pollution
+ 
+prediction is a challenging time-series problem because pollutant concentrations depend not only on past values, but also on meteorological conditions and nonlinear environmental interactions. To address this, the proposed system uses a multivariate dataset containing atmospheric and weather-related attributes such as PM2.5, NO2, CO, temperature, and humidity to predict future Air Quality Index (AQI) values.
+The workflow begins with data loading, cleaning, timestamp handling, interpolation of missing values, and normalization using 
+MinMaxScaler
+. After preprocessing, the timeseries data is converted into supervised learning samples through sliding-window sequence generation. In order to study high-performance computing concepts, the preprocessing stage is implemented in both sequential and parallel forms and their runtimes are compared. Two prediction branches are then developed: an 
+XGBoost
+ regressor trained on flattened sequence windows and an LSTM network trained on structured sequential input. Finally, both outputs are combined through weighted averaging to produce a hybrid prediction.
+Experimental evaluation is performed using RMSE and MAE, along with runtime measurements for major stages of the pipeline. The results show that the LSTM model performs best on the chosen dataset, while the hybrid model remains competitive and demonstrates the value of combining machine learning and deep learning approaches. The project also provides an important HPC insight: parallel execution is beneficial only when the workload is sufficiently large to compensate for process and coordination overhead.
+2. Introduction
+Air quality has become one of the most important environmental concerns in modern society. Rapid urbanization, industrial growth, traffic density, and climate variation have contributed to increased levels of air pollution in many cities. Poor air quality directly affects public health by increasing the risk of respiratory disease, cardiovascular problems, and long-term chronic illness. As a result, accurate forecasting of air quality is essential for environmental monitoring systems, smart-city planning, healthcare advisories, and policy making.
+Predicting AQI is not a simple regression task because pollution data is highly dynamic and influenced by multiple interacting variables. Pollutant concentrations change over time and often show temporal patterns, seasonal effects, and nonlinear relationships with external factors such as weather conditions. Traditional machine learning models can capture nonlinear relationships effectively, but they may fail to exploit long-range temporal dependencies. On the other hand, deep learning models such as LSTM are designed specifically for sequential data and can learn time-based patterns more effectively.
+This project combines both perspectives by developing a hybrid AQI forecasting pipeline using 
+XGBoost
+ and LSTM. 
+XGBoost
+ serves as a strong tabular learning model with efficient multicore training support, while LSTM captures temporal structure in sequential observations. The integration of these models enables a comparative and practical study of machine learning, deep learning, and hybrid forecasting under a high-performance computing framework. The project also investigates whether preprocessing tasks such as sequence generation benefit from CPU-based parallelization on a standard computing environment.
+Accurate forecasting of air quality is essential for smart-city planning. However, traditional statistical models like ARMA or ARIMA often struggle with the non-stationary and nonlinear nature of atmospheric chemistry. The complexity arises from "lagged effects," where a spike in humidity today might only trigger a rise in particulate matter concentration several hours later.
+To bridge this gap, this project employs a 
+Dual-Stream Forecasting Strategy
+. The first stream uses 
+XGBoost
+, a tree-based ensemble method that excels at identifying feature importance (e.g., which weather variable most affects CO levels). The second stream uses LSTM, a Deep Learning architecture capable of maintaining a "cell state" to remember patterns across hundreds of previous time steps. By merging these under an HPC framework, we evaluate not only the 
+what
+ (the prediction) but also the 
+how
+ (the computational efficiency of the pipeline).
+2.1 Literature Review
+Recent research in atmospheric science has shifted from traditional linear models like 
+ARIMA
+ to non-linear Machine Learning models. While 
+Random
+Forests
+ and 
+SVMs
+ are common baseline models, they often fail to capture the "
+LongRange
+ Dependence" of air pollutants. Studies by 
+Chen et al.
+ demonstrated that 
+XGBoost
+ offers superior speed on tabular data, while 
+Hochreiter &amp; 
+Schmidhuber
+ established LSTM as the 
+gold standard for sequential memory. Our project bridges these two domains into a single hybrid pipeline.
+3
+. Background and HPC Concepts
+3
+.1 High Performance Computing
+High Performance Computing (HPC) refers to the use of advanced computational methods to solve problems faster and more efficiently than standard serial execution. HPC does not always require a supercomputer; even on a normal CPU system, performance-oriented programming practices such as parallelization, workload partitioning, vectorized computation, and optimized libraries can significantly improve execution efficiency. In this project, HPC ideas are introduced through multicore training in 
+XGBoost
+ and parallel preprocessing for sequence generation.
+3
+.2 Time-Series Prediction
+Time-series forecasting involves using past observations to predict future values. Unlike ordinary tabular prediction, time-series data has a natural order and temporal dependency. In AQI prediction, current pollution levels often depend on several previous readings and related environmental conditions. Sliding-window methods convert a sequence of observations into supervised samples by using a fixed number of past time steps to predict the next target value.
+3
+.3 
+XGBoost
+XGBoost
+ is a highly efficient gradient boosting algorithm known for strong performance on structured datasets. It builds an ensemble of decision trees where each new tree corrects the errors of the previous trees. 
+XGBoost
+ supports regularization, parallel tree construction, and robust handling of nonlinear feature interactions, making it well suited for air quality data once time windows are flattened into tabular form.
+XGBoost
+ (Extreme Gradient Boosting) minimizes a regularized objective function that combines a convex loss function and a penalty term for model complexity. In the context of AQI, it treats each time-window as a high-dimensional feature vector, effectively capturing "snapshot" interactions between humidity and pollutants.
+3
+.4 LSTM
+Long Short-Term Memory (LSTM) is a specialized recurrent neural network architecture developed for sequential learning. It overcomes the short-memory limitations of standard RNNs through gated mechanisms that selectively retain or forget information. This makes LSTM especially useful in AQI forecasting, where previous pollutant trends and weather dynamics influence future conditions over multiple time steps.
+Standard Recurrent Neural Networks (RNNs) suffer from vanishing gradients, making them unable to learn dependencies beyond a few time steps. LSTM solves this via three 
+gates
+:
+Forget Gate:
+ Decides what information from the previous state is discarded.
+Input Gate:
+ Updates the cell state with new information.
+Output Gate:
+ Determines the final hidden state used for prediction. This allows the model to "remember" a morning traffic peak even when predicting evening AQI levels.
+3
+.5 Hybrid 
+Modeling
+Hybrid 
+modeling
+ combines the strengths of multiple predictive approaches. In this project, 
+XGBoost
+ contributes strong nonlinear regression capability on engineered features, while LSTM contributes temporal learning from ordered sequences. By combining their predictions using weighted averaging, the system aims to achieve a balance between robustness and sequence sensitivity.
+3
+.6 Parallel Preprocessing
+Parallel preprocessing is a practical HPC technique in which data preparation tasks are divided into independent chunks and processed across multiple CPU cores. For sequence generation, each worker can construct sliding-window samples for a different index range. However, the effectiveness of this approach depends on workload size. If the dataset is relatively small, the overhead of creating worker processes and combining outputs may exceed the speedup gained from parallel execution.
+In HPC, Amdahl's Law states that the speedup of a program is limited by the time needed for its sequential fraction. In this project, while sequence generation can be distributed across 4 or 8 cores, the initial CSV loading and the final model weight updates remain 
+sequential. We study this overhead—specifically the cost of "pickling" data for 
+interprocess
+ communication—to determine the optimal workload threshold for parallelization.
+4
+. Problem Statement
+The goal of this project is to design a reliable and computationally efficient system for predicting future AQI values from multivariate air-quality observations. Real-world environmental datasets often contain missing values, inconsistent column formats, and time-dependent patterns that must be processed carefully before 
+modeling
+. Therefore, the system must solve both a data engineering problem and a predictive 
+modeling
+ problem.
+More specifically, the project addresses the challenge of transforming raw air-quality records into a form suitable for time-series forecasting, training different predictive models, and evaluating their performance in terms of both accuracy and runtime. The system should support:
+cleaning and standardizing the dataset,
+handling missing observations,
+generating fixed-length temporal input windows,
+training 
+XGBoost
+ efficiently using multicore CPU execution,
+training an LSTM model on sequential data,
+combining the outputs of both models into a hybrid predictor, and
+analyzing
+ whether parallel preprocessing improves practical execution speed.
+The broader problem being studied is how to balance predictive accuracy with computational efficiency in air quality forecasting using accessible high-performance computing techniques on a normal CPU-based machine.
+The system must solve both a data engineering and a predictive 
+modeling
+ problem. Specifically, the "Feature-Temporal Gap" remains a significant hurdle: how to represent 24 hours of multi-variable weather data in a format that a non-sequential model like 
+XGBoost
+ can understand without losing the chronological signal.
+Furthermore, the project addresses the 
+Scalability Constraint
+. In real-time environmental monitoring, the time taken to preprocess and train models must be less than the interval between data samples. If preprocessing 10,000 records takes longer than an hour, the 
+model becomes obsolete for hourly forecasting. This project formalizes the investigation into whether CPU-level parallelization can effectively resolve this bottleneck for localized datasets.
+5
+. Objectives
+To load and preprocess a real air quality dataset.
+To normalize pollution and weather features using 
+MinMaxScaler
+.
+To create sliding-window time-series sequences.
+To train an 
+XGBoost
+ regressor using multicore CPU processing.
+To build and train an LSTM network for sequence forecasting.
+To compare sequential and parallel preprocessing time.
+To combine predictions from both models in a hybrid ensemble.
+To visualize prediction accuracy and runtime 
+behavior
+ using graphs.
+6. System Architecture
+The overall system follows a modular pipeline architecture. First, the raw 
+AirQualityUCI
+ dataset is loaded from a CSV source and standardized so that relevant columns are consistently named. Timestamp information is processed and the dataset is sorted chronologically. Missing values are then handled using interpolation, forward-fill, and backward-fill operations to ensure continuity in the time series.
+After cleaning, the selected pollutant and meteorological features are normalized using 
+MinMaxScaler
+. A sliding-window mechanism converts the continuous sequence into supervised learning samples. These samples are then sent into two separate model branches. In the first branch, sequence windows are flattened and passed to an 
+XGBoost
+ regressor. In the second branch, the original three-dimensional sequential representation is preserved and fed into the LSTM network.
+Once both models are trained, their predictions on blend and test sets are generated and combined through weighted averaging. The final output includes predicted AQI values, comparison graphs, training curves, feature importance plots, model metrics, and timing measurements for different stages of the workflow. This architecture supports both accuracy analysis and computational performance analysis within a single unified pipeline.
+7. Methodology
+7.1 Dataset Loading
+The 
+AirQualityUCI
+ dataset was selected because it contains multiple atmospheric indicators that are relevant for AQI-related forecasting. The dataset was read into a 
+pandas 
+DataFrame
+, and timestamp-like columns were detected and converted into a consistent datetime format. If a usable timestamp column was unavailable, synthetic hourly timestamps were generated to preserve sequence order.
+7.2 Data Cleaning and Missing Value Handling
+Environmental datasets commonly contain missing values, invalid symbols, and inconsistent formatting. To prepare the data for 
+modeling
+, the dataset columns were standardized and only relevant features were retained. Missing numeric observations were handled using interpolation to estimate intermediate values, followed by forward-fill and backward-fill to remove remaining gaps. This approach helps preserve temporal continuity while reducing data loss.
+7.3 Feature Selection and Scaling
+The project focused on a feature set consisting of PM2.5, NO2, CO, temperature, and humidity. These variables capture both pollutant concentration and meteorological influence. Since the feature ranges differ significantly, 
+MinMaxScaler
+ was applied to both the input features and target AQI values. Normalization improves optimization stability for LSTM training and ensures that no feature dominates solely due to scale.
+7.4 Sequence Creation
+A sliding-window size of 20 was used to create supervised learning samples. For each prediction point, the model receives the previous 
+20 time
+ steps as input and learns to estimate the next AQI value. This transformation converts the original continuous time series into input-output pairs suitable for both machine learning and deep learning.
+7.5 Sequential and Parallel Preprocessing
+To study HPC concepts, the sequence-generation stage was implemented in two ways. In the sequential version, windows were created one by one in a single process. In the parallel version, the workload was divided into chunks and processed using 
+joblib
+ across 
+multiple CPU cores. The runtime of both strategies was measured and compared to understand the practical effect of parallelism on moderate-sized workloads.
+Using the 
+joblib
+ library with a 
+loky
+ backend, the dataset is partitioned into $N$ chunks, where $N$ is the number of available CPU logical cores. Each core independently executes the sliding-window logic.
+Sequential Complexity:
+ $
+O(
+n \times 
+w)$
+, where $n$ is the number of samples and $w$ is the window size.
+Parallel Complexity:
+ $O((n/k) \times w) + \Delta$, where $k$ is the number of cores and $\Delta$ is the coordination overhead.
+7.6 Train-Test Splitting
+The generated samples were split into training and testing subsets using an 80:20 ratio while preserving chronological order. This is important in time-series forecasting because random shuffling would break temporal structure and lead to unrealistic evaluation. A separate blending split was also used during the hybrid prediction stage.
+7.7 
+XGBoost
+ Training
+For the 
+XGBoost
+ branch, each sequence window was flattened into a one-dimensional feature vector. The regressor was configured with multiple estimators, controlled tree depth, learning rate, and multicore CPU support. This model served as a strong baseline and captured nonlinear relationships among lag-based features efficiently.
+7.8 LSTM Training
+For the LSTM branch, each sample retained its full sequential structure in three dimensions: number of samples, window size, and feature count. The network architecture included an input layer, an LSTM layer with 64 hidden units, dropout for regularization, and dense layers for final regression. The model was trained using the Adam optimizer and mean squared error loss. Early stopping was applied to reduce overfitting and restore the best-performing weights.
+7.9 Hybrid Prediction
+After both models were trained independently, their predictions were combined through weighted averaging. The hybrid model was intended to merge the tabular learning strength of 
+XGBoost
+ with the temporal 
+modeling
+ ability of LSTM. This ensemble step 
+allowed the project to test whether a combined approach could outperform the individual models.
+The final prediction ($P_{hybrid}$) is calculated as:
+𝑃
+ℎ𝑦𝑏𝑟𝑖𝑑
+ 
+=(
+𝛼
+×
+𝑃
+𝐿𝑆𝑇𝑀
+)+(
+(1−
+𝛼
+)×
+𝑃
+𝑋𝐺𝐵
+)
+Where $\alpha$ is a weight optimized based on the validation set performance. Typically, $\alpha$ is set higher for LSTM due to its superior handling of sequential patterns, while 
+XGBoost
+ acts as a stabilizer to prevent deep learning "drifts."
+7.10 Performance Evaluation
+The models were evaluated using Root Mean Squared Error (RMSE) and Mean Absolute Error (MAE), which are standard metrics for regression quality. In addition, timing measurements were recorded for key stages such as data loading, preprocessing, training, inference, and total runtime. This dual evaluation allowed the project to compare not only model accuracy but also computational efficiency.
+8. 
+Implementation with Code
+8.1 Data Cleaning and Standardization Code
+The following code standardizes the dataset columns, converts timestamps, and handles missing values.
+def 
+prepare_
+dataframe
+(
+df
+: 
+pd.DataFrame
+) -&gt; 
+pd.DataFrame
+:
+"""Standardize column names, create timestamps, and preserve relevant columns."""
+df
+ = 
+df.copy
+()
+timestamp_col
+ = 
+find_
+column
+(
+df
+, ["timestamp", "date", "datetime", "time"
+])   
+  if 
+timestamp_col
+: 
+ 
+        
+df
+[
+timestamp_col
+] = 
+pd.to_datetime
+(
+df
+[
+timestamp_col
+], errors="coerce
+")   
+      
+df
+ = 
+df.sort
+_values
+(
+timestamp_col
+).
+reset
+_index
+(drop=True)
+f.rename
+(columns
+={
+timestamp_col
+: "timestamp"}, 
+inplace
+=True)
+else:
+df.insert
+(0, "timestamp", 
+pd.date
+_
+range
+(
+"2023-01-01", periods=
+len
+(
+df
+), 
+freq
+="h"))
+rename_map
+ = {}     
+pm_col
+ = 
+find_column
+(
+df
+, ["pm2.5", "pm25", "pm_2_5", "pm 2.5"])     no2_col = 
+find_column
+(
+df
+, ["no2", "nitrogen dioxide"])     
+co_col
+ = 
+find_column
+(
+df
+, ["co", "carbon monoxide"])     
+temp_col
+ = 
+find_column
+(
+df
+, ["temperature", "temp"])     
+humidity_col
+ = 
+find_column
+(
+df
+, ["humidity", "rh"])     
+target_col
+ = 
+find_column
+(
+df
+, ["
+aqi
+", "
+air_quality_index
+", "target", "pm2.5_target"])
+<w:tab w:val="center" w:pos="2767"/></w:tabs><w:spacing w:after="219" w:line="259" w:lineRule="auto"/><w:ind w:left="-5" w:firstLine="0"/></w:pPr><w:r><w:rPr><w:sz w:val="20"/></w:rPr><w:t xml:space="preserve">if 
+</w:r><w:proofErr w:type="spellStart"/><w:r><w:rPr><w:sz w:val="20"/></w:rPr><w:t>pm_col
+:
+rename_map
+[
+pm_col
+] = "PM2.5"     if no2_col:         
+rename_map
+[no2_col] =
+"NO2"
+<w:tab w:val="center" w:pos="2471"/></w:tabs><w:spacing w:after="197" w:line="259" w:lineRule="auto"/><w:ind w:left="-5" w:firstLine="0"/></w:pPr><w:r><w:rPr><w:sz w:val="20"/></w:rPr><w:t xml:space="preserve">if 
+</w:r><w:proofErr w:type="spellStart"/><w:r><w:rPr><w:sz w:val="20"/></w:rPr><w:t>co_col
+:
+rename_map
+[
+co_col
+] = "CO"     if 
+temp_col
+: 
+rename_map
+[
+temp_col
+] = "temperature" if 
+humidity_col
+:
+rename_map
+[
+humidity_col
+] = "humidity" if 
+target_col
+:
+8.2 Parallel Sequence Generation Code
+The following function generates time-series windows in parallel using 
+joblib
+ and multiprocessing-friendly chunks.
+def 
+create_sequences_
+parallel
+(  
+   features: 
+np.ndarray
+,     target: 
+np.ndarray
+,     timestamps: 
+np.ndarray
+,     
+window_size
+:
+int,   
+  
+n_jobs
+: int = -1,
+) 
+<w:t xml:space="preserve">-&gt; 
+</w:r><w:proofErr w:type="gramStart"/><w:r><w:rPr><w:sz w:val="20"/></w:rPr><w:t>Tuple[
+np.ndarray
+, 
+</w:r><w:proofErr w:type="spellStart"/><w:proofErr w:type="gramStart"/><w:r><w:rPr><w:sz w:val="20"/></w:rPr><w:t>np.ndarray
+, 
+</w:r><w:proofErr w:type="spellStart"/><w:proofErr w:type="gramStart"/><w:r><w:rPr><w:sz w:val="20"/></w:rPr><w:t>np.ndarray
+]:     
+total_samples
+ = 
+len
+(features) - 
+window_size
+     
+workers = 
+max(
+1, 
+cpu_
+count
+(
+) if 
+n_jobs
+ == -1 else 
+n_
+jobs
+)   
+  
+chunk_size
+= 
+max(
+512, 
+total_samples
+ // workers)
+index_ranges
+ = 
+[]   
+  start = 
+window_size
+     while start &lt; 
+len
+(features):
+end = 
+min(
+start + 
+chunk_size
+, 
+len
+(features
+))   
+      
+index_
+ranges.append
+((start, end
+))   
+      start = end
+<w:tab w:val="center" w:pos="1510"/><w:tab w:val="center" w:pos="3461"/><w:tab w:val="center" w:pos="6180"/></w:tabs><w:spacing w:after="247" w:line="259" w:lineRule="auto"/><w:ind w:left="-5" w:firstLine="0"/></w:pPr><w:r><w:rPr><w:sz w:val="20"/></w:rPr><w:t xml:space="preserve">chunks 
+<w:t xml:space="preserve">= 
+</w:r><w:proofErr w:type="spellStart"/><w:proofErr w:type="gramStart"/><w:r><w:rPr><w:sz w:val="20"/></w:rPr><w:t>joblib.Parallel
+(
+n_jobs
+=
+n_jobs
+, 
+<w:t>prefer="processes
+")(
+joblib.delayed
+(_
+build_sequence_
+chunk
+)(
+features,   
+      
+target,   
+      
+timestamps,   
+      
+window_size
+,
+start_idx
+,
+end_idx
+,
+8.3 LSTM Model Architecture Code
+This function builds the deep learning model used for time-series forecasting.
+def 
+ 
+build
+_lstm_
+model
+(
+window_size
+: int, 
+feature_count
+: int) -&gt; 
+tf.keras
+.Model
+:
+model = 
+tf.keras
+.
+Sequential
+(
+[
+tf.keras
+.
+layers.Input
+(shape
+=(
+window_size
+, 
+feature_count
+)
+),   
+          
+tf.keras
+.
+layers.LSTM
+(64
+),   
+          
+tf.keras
+.
+layers.Dropout
+(0.2),
+<w:tab w:val="center" w:pos="4597"/></w:tabs><w:spacing w:after="244" w:line="259" w:lineRule="auto"/><w:ind w:left="-5" w:firstLine="0"/></w:pPr><w:proofErr w:type="spellStart"/><w:proofErr w:type="gramStart"/><w:r><w:rPr><w:sz w:val="20"/></w:rPr><w:t>tf.keras
+.
+layers.Dense
+(32, 
+<w:t>activation="
+relu
+"),
+tf.keras
+.
+layers.Dense
+(1),
+]
+)
+model.compile
+(optimizer=
+tf.keras
+.
+optimizers.Adam
+(learning_rate=0.001), 
+<w:t>loss="
+mse
+", 
+<w:t>metrics=["
+mae
+"
+])   
+  return model
+8.4 
+XGBoost
+, LSTM Training and Hybrid Prediction Code
+This code trains the 
+XGBoost
+ and LSTM models and then combines both outputs to produce the hybrid forecast
+.
+xgb_model
+ = 
+xgb.XGBRegressor
+(
+n_estimators
+=220,
+max_depth
+=6, 
+learning_rate
+=0.
+05,   
+  subsample=0.
+9,   
+  
+colsample_bytree
+=0.
+9,   
+  objective="
+reg:squarederror
+",   
+      
+reg_lambda
+=1.
+0,   
+      
+random_state
+=
+42,   
+      
+n_jobs
+=-1,
+)
+xgb_model.fit
+(
+blend_split
+["
+x_fit_flat
+"], 
+</w:r><w:proofErr w:type="spellStart"/><w:r><w:rPr><w:sz w:val="20"/></w:rPr><w:t>blend_split
+["
+y_fit
+"
+].ravel
+(
+))   
+  timings["
+xgboost_training
+"] = 
+time.perf
+_
+counter
+(
+) - 
+stage_start
+<w:tab w:val="center" w:pos="1515"/><w:tab w:val="center" w:pos="2754"/><w:tab w:val="center" w:pos="3937"/><w:tab w:val="center" w:pos="4340"/><w:tab w:val="center" w:pos="4741"/><w:tab w:val="center" w:pos="5144"/><w:tab w:val="center" w:pos="6019"/><w:tab w:val="center" w:pos="6950"/></w:tabs><w:spacing w:after="220" w:line="259" w:lineRule="auto"/><w:ind w:left="-5" w:firstLine="0"/></w:pPr><w:proofErr w:type="spellStart"/><w:r><w:rPr><w:sz w:val="20"/></w:rPr><w:t>stage_start
+ 
+<w:t xml:space="preserve">= 
+</w:r><w:proofErr w:type="spellStart"/><w:proofErr w:type="gramStart"/><w:r><w:rPr><w:sz w:val="20"/></w:rPr><w:t>time.perf
+_
+counter
+(
+) 
+<w:t xml:space="preserve"> 
+<w:t xml:space="preserve"> 
+<w:t xml:space="preserve"> 
+<w:t xml:space="preserve"> 
+</w:r><w:proofErr w:type="spellStart"/><w:r><w:rPr><w:sz w:val="20"/></w:rPr><w:t>lstm_model
+ 
+<w:t>=
+build_lstm_
+model
+(
+args.window
+_size
+, 
+split_data.x_train_
+seq.shape
+[2
+])   
+  
+early_stopping
+ = 
+tf.keras
+.
+callbacks.EarlyStopping
+(  
+       monitor="
+val_loss
+",   
+      patience=
+3,   
+      
+restore_best_weights
+=True,
+)
+history = 
+lstm_model.fit
+(  
+       
+blend_split
+["
+x_fit_seq
+"
+],   
+      
+blend_split
+["
+y_fit
+"
+],   
+      
+validation_data
+=(
+blend_split
+["
+x_blend_seq
+"], 
+blend_split
+["
+y_blend
+"]
+),   
+      epochs=
+max(
+args.epochs
+, 10),
+batch_size
+=
+args.batch
+_
+size
+,   
+      verbose=
+1,   
+      callbacks=[
+early_stopping
+],
+)
+timings["
+lstm_training
+"] = 
+time.perf
+_
+counter
+(
+) - 
+stage_start
+<w:tab w:val="center" w:pos="629"/><w:tab w:val="center" w:pos="1436"/><w:tab w:val="center" w:pos="2595"/><w:tab w:val="center" w:pos="3695"/><w:tab w:val="center" w:pos="4019"/><w:tab w:val="center" w:pos="4341"/><w:tab w:val="center" w:pos="4664"/><w:tab w:val="center" w:pos="5707"/><w:tab w:val="center" w:pos="6809"/></w:tabs><w:spacing w:after="219" w:line="259" w:lineRule="auto"/><w:ind w:left="0" w:firstLine="0"/></w:pPr><w:proofErr w:type="spellStart"/><w:r><w:rPr><w:sz w:val="20"/></w:rPr><w:t>stage_start
+ 
+<w:t xml:space="preserve">= 
+</w:r><w:proofErr w:type="spellStart"/><w:proofErr w:type="gramStart"/><w:r><w:rPr><w:sz w:val="20"/></w:rPr><w:t>time.perf
+_
+counter
+(
+) 
+<w:t xml:space="preserve"> 
+<w:t xml:space="preserve"> 
+<w:t xml:space="preserve"> 
+<w:t xml:space="preserve"> 
+</w:r><w:proofErr w:type="spellStart"/><w:r><w:rPr><w:sz w:val="20"/></w:rPr><w:t>xgb_blend_scaled
+ 
+<w:t>=
+xgb_
+model.predict
+(
+blend_split
+["
+x_blend_flat
+"]
+).reshape
+(-1, 1)     
+xgb_test_scaled
+ = 
+xgb_
+model.predict
+(
+split_data.x_test_flat
+).reshape
+(-1, 1)
+lstm_blend_scaled
+ = 
+lstm_
+model.predict
+(
+blend_split
+["
+x_blend_seq
+"], verbose=0)     
+lstm_test_scaled
+ = 
+lstm_
+model.predict
+(
+split_data.x_test_seq
+, verbose=0)
+timings["inference"] = 
+time.perf
+_
+counter
+(
+) - 
+stage_start
+9. Results and Output
+The experimental outputs show that the project executed successfully across all major stages, including preprocessing, model training, inference, and visualization. The training screenshot confirms that the program ran correctly and completed both the 
+XGBoost
+ and LSTM workflows without failure. The actual-versus-predicted graph demonstrates that all three models were able to track the general trend of AQI values, although the LSTM curve aligned most closely with the ground truth.
+The training-versus-validation loss graph shows stable learning 
+behavior
+ in the LSTM branch, with loss decreasing over epochs and no major divergence between training and validation trends. The model-comparison graph summarizes RMSE and MAE values across 
+XGBoost
+, LSTM, and Hybrid models, making it easier to interpret comparative performance. Execution-time comparison shows that the expected speedup from parallel preprocessing was not realized for the present dataset size. Finally, the feature-importance plot from 
+XGBoost
+ highlights which lag-based inputs contributed most strongly to prediction, adding interpretability to the machine learning branch.
+9.1 Training and Console Output Screenshot
+9.2 Actual vs Predicted Values
+This graph compares the actual AQI values with the predictions generated by 
+XGBoost
+, LSTM, and the hybrid model.
+9.3 Training vs Validation Loss
+This graph shows the reduction in LSTM loss over 10 epochs and confirms that the model learned stable temporal patterns.
+9.4 Model Comparison Graph
+This graph compares the RMSE and MAE values of 
+XGBoost
+, LSTM, and Hybrid models.
+9.5 Execution Time Comparison
+This graph compares the time required for sequential preprocessing and parallel preprocessing.
+9.6 Feature Importance Plot
+This plot shows the most influential lag-based features used by the 
+XGBoost
+ model.
+9.7 Evaluation Metrics Table
+The table below summarizes the error metrics. A critical observation is that the 
+Hybrid model (4.1215 RMSE)
+ did not outperform the 
+standalone LSTM (4.0935 RMSE)
+. This suggests that for the 
+AirQualityUCI
+ dataset, the "noise" or higher error from the 
+XGBoost
+ branch slightly diluted the superior temporal accuracy of the LSTM during the weighted averaging process.
+<w:tblPr><w:tblStyle w:val="TableGrid"/><w:tblW w:w="8644" w:type="dxa"/><w:tblInd w:w="-89" w:type="dxa"/><w:tblCellMar><w:top w:w="124" w:type="dxa"/><w:left w:w="106" w:type="dxa"/><w:right w:w="115" w:type="dxa"/></w:tblCellMar><w:tblLook w:val="04A0" w:firstRow="1" w:lastRow="0" w:firstColumn="1" w:lastColumn="0" w:noHBand="0" w:noVBand="1"/></w:tblPr><w:tblGrid><w:gridCol w:w="2883"/><w:gridCol w:w="2880"/><w:gridCol w:w="2881"/></w:tblGrid><w:tr w:rsidR="00C72E78" w:rsidRPr="00F600EA" w14:paraId="193A46CD" w14:textId="77777777"><w:trPr><w:trHeight w:val="370"/></w:trPr><w:tc><w:tcPr><w:tcW w:w="2883" w:type="dxa"/><w:tcBorders><w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:left w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:right w:val="single" w:sz="4" w:space="0" w:color="000000"/></w:tcBorders></w:tcPr><w:p w14:paraId="334C86FB" w14:textId="36F32AC6" w:rsidR="00C72E78" w:rsidRPr="00F600EA" w:rsidRDefault="00D33112" w:rsidP="00900D1C"><w:pPr><w:spacing w:after="0" w:line="259" w:lineRule="auto"/><w:ind w:left="2" w:firstLine="0"/><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/></w:rPr></w:pPr><w:r w:rsidRPr="00F600EA"><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:color w:val="000000"/></w:rPr><w:t>Model
+<w:tcPr><w:tcW w:w="2880" w:type="dxa"/><w:tcBorders><w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:left w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:right w:val="single" w:sz="4" w:space="0" w:color="000000"/></w:tcBorders></w:tcPr><w:p w14:paraId="19E31B49" w14:textId="29BCC05A" w:rsidR="00C72E78" w:rsidRPr="00F600EA" w:rsidRDefault="00D33112" w:rsidP="00900D1C"><w:pPr><w:spacing w:after="0" w:line="259" w:lineRule="auto"/><w:ind w:left="0" w:firstLine="0"/><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/></w:rPr></w:pPr><w:r w:rsidRPr="00F600EA"><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:color w:val="000000"/></w:rPr><w:t>RMSE
+<w:tcPr><w:tcW w:w="2881" w:type="dxa"/><w:tcBorders><w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:left w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:right w:val="single" w:sz="4" w:space="0" w:color="000000"/></w:tcBorders></w:tcPr><w:p w14:paraId="389A79AA" w14:textId="492C0F0B" w:rsidR="00C72E78" w:rsidRPr="00F600EA" w:rsidRDefault="00D33112" w:rsidP="00900D1C"><w:pPr><w:spacing w:after="0" w:line="259" w:lineRule="auto"/><w:ind w:left="0" w:firstLine="0"/><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/></w:rPr></w:pPr><w:r w:rsidRPr="00F600EA"><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:color w:val="000000"/></w:rPr><w:t>MAE
+<w:trPr><w:trHeight w:val="370"/></w:trPr><w:tc><w:tcPr><w:tcW w:w="2883" w:type="dxa"/><w:tcBorders><w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:left w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:right w:val="single" w:sz="4" w:space="0" w:color="000000"/></w:tcBorders></w:tcPr><w:p w14:paraId="6BBAEA5B" w14:textId="3A49E460" w:rsidR="00C72E78" w:rsidRPr="00F600EA" w:rsidRDefault="00D33112" w:rsidP="00900D1C"><w:pPr><w:spacing w:after="0" w:line="259" w:lineRule="auto"/><w:ind w:left="2" w:firstLine="0"/><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/></w:rPr></w:pPr><w:proofErr w:type="spellStart"/><w:r w:rsidRPr="00F600EA"><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:color w:val="000000"/></w:rPr><w:t>XGBoost
+<w:tcPr><w:tcW w:w="2880" w:type="dxa"/><w:tcBorders><w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:left w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:right w:val="single" w:sz="4" w:space="0" w:color="000000"/></w:tcBorders></w:tcPr><w:p w14:paraId="7CBD94A0" w14:textId="3FCB0660" w:rsidR="00C72E78" w:rsidRPr="00F600EA" w:rsidRDefault="00D33112" w:rsidP="00900D1C"><w:pPr><w:spacing w:after="0" w:line="259" w:lineRule="auto"/><w:ind w:left="0" w:firstLine="0"/><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/></w:rPr></w:pPr><w:r w:rsidRPr="00F600EA"><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:color w:val="000000"/></w:rPr><w:t>4.3425
+<w:tcPr><w:tcW w:w="2881" w:type="dxa"/><w:tcBorders><w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:left w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:right w:val="single" w:sz="4" w:space="0" w:color="000000"/></w:tcBorders></w:tcPr><w:p w14:paraId="0FFBA9CD" w14:textId="6AC05FFF" w:rsidR="00C72E78" w:rsidRPr="00F600EA" w:rsidRDefault="00D33112" w:rsidP="00900D1C"><w:pPr><w:spacing w:after="0" w:line="259" w:lineRule="auto"/><w:ind w:left="0" w:firstLine="0"/><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/></w:rPr></w:pPr><w:r w:rsidRPr="00F600EA"><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:color w:val="000000"/></w:rPr><w:t>3.2983
+<w:trPr><w:trHeight w:val="370"/></w:trPr><w:tc><w:tcPr><w:tcW w:w="2883" w:type="dxa"/><w:tcBorders><w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:left w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:right w:val="single" w:sz="4" w:space="0" w:color="000000"/></w:tcBorders></w:tcPr><w:p w14:paraId="5B528AA8" w14:textId="712FB2A5" w:rsidR="00C72E78" w:rsidRPr="00F600EA" w:rsidRDefault="00D33112" w:rsidP="00900D1C"><w:pPr><w:spacing w:after="0" w:line="259" w:lineRule="auto"/><w:ind w:left="2" w:firstLine="0"/><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/></w:rPr></w:pPr><w:r w:rsidRPr="00F600EA"><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:color w:val="000000"/></w:rPr><w:t>LSTM
+<w:tcPr><w:tcW w:w="2880" w:type="dxa"/><w:tcBorders><w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:left w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:right w:val="single" w:sz="4" w:space="0" w:color="000000"/></w:tcBorders></w:tcPr><w:p w14:paraId="089E2594" w14:textId="4DE54B31" w:rsidR="00C72E78" w:rsidRPr="00F600EA" w:rsidRDefault="00D33112" w:rsidP="00900D1C"><w:pPr><w:spacing w:after="0" w:line="259" w:lineRule="auto"/><w:ind w:left="0" w:firstLine="0"/><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/></w:rPr></w:pPr><w:r w:rsidRPr="00F600EA"><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:color w:val="000000"/></w:rPr><w:t>4.0935
+<w:tcPr><w:tcW w:w="2881" w:type="dxa"/><w:tcBorders><w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:left w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:right w:val="single" w:sz="4" w:space="0" w:color="000000"/></w:tcBorders></w:tcPr><w:p w14:paraId="36144A60" w14:textId="70827C53" w:rsidR="00C72E78" w:rsidRPr="00F600EA" w:rsidRDefault="00D33112" w:rsidP="00900D1C"><w:pPr><w:spacing w:after="0" w:line="259" w:lineRule="auto"/><w:ind w:left="0" w:firstLine="0"/><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/></w:rPr></w:pPr><w:r w:rsidRPr="00F600EA"><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:color w:val="000000"/></w:rPr><w:t>3.0671
+<w:trPr><w:trHeight w:val="372"/></w:trPr><w:tc><w:tcPr><w:tcW w:w="2883" w:type="dxa"/><w:tcBorders><w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:left w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:right w:val="single" w:sz="4" w:space="0" w:color="000000"/></w:tcBorders></w:tcPr><w:p w14:paraId="23E17709" w14:textId="58E88113" w:rsidR="00C72E78" w:rsidRPr="00F600EA" w:rsidRDefault="00D33112" w:rsidP="00900D1C"><w:pPr><w:spacing w:after="0" w:line="259" w:lineRule="auto"/><w:ind w:left="2" w:firstLine="0"/><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/></w:rPr></w:pPr><w:r w:rsidRPr="00F600EA"><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:color w:val="000000"/></w:rPr><w:t>Hybrid
+<w:tcPr><w:tcW w:w="2880" w:type="dxa"/><w:tcBorders><w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:left w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:right w:val="single" w:sz="4" w:space="0" w:color="000000"/></w:tcBorders></w:tcPr><w:p w14:paraId="1BA06186" w14:textId="6AAC98BB" w:rsidR="00C72E78" w:rsidRPr="00F600EA" w:rsidRDefault="00D33112" w:rsidP="00900D1C"><w:pPr><w:spacing w:after="0" w:line="259" w:lineRule="auto"/><w:ind w:left="0" w:firstLine="0"/><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/></w:rPr></w:pPr><w:r w:rsidRPr="00F600EA"><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:color w:val="000000"/></w:rPr><w:t>4.1215
+<w:tcPr><w:tcW w:w="2881" w:type="dxa"/><w:tcBorders><w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:left w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:right w:val="single" w:sz="4" w:space="0" w:color="000000"/></w:tcBorders></w:tcPr><w:p w14:paraId="72CA0F91" w14:textId="7A6C2E2C" w:rsidR="00C72E78" w:rsidRPr="00F600EA" w:rsidRDefault="00D33112" w:rsidP="00900D1C"><w:pPr><w:spacing w:after="0" w:line="259" w:lineRule="auto"/><w:ind w:left="0" w:firstLine="0"/><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/></w:rPr></w:pPr><w:r w:rsidRPr="00F600EA"><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:color w:val="000000"/></w:rPr><w:t>3.1138
+9.8 Stage Timings
+<w:tblPr><w:tblStyle w:val="TableGrid"/><w:tblW w:w="8644" w:type="dxa"/><w:tblInd w:w="-89" w:type="dxa"/><w:tblCellMar><w:top w:w="124" w:type="dxa"/><w:left w:w="106" w:type="dxa"/><w:right w:w="115" w:type="dxa"/></w:tblCellMar><w:tblLook w:val="04A0" w:firstRow="1" w:lastRow="0" w:firstColumn="1" w:lastColumn="0" w:noHBand="0" w:noVBand="1"/></w:tblPr><w:tblGrid><w:gridCol w:w="4323"/><w:gridCol w:w="4321"/></w:tblGrid><w:tr w:rsidR="00C72E78" w:rsidRPr="00F600EA" w14:paraId="7A2EBF3B" w14:textId="77777777"><w:trPr><w:trHeight w:val="370"/></w:trPr><w:tc><w:tcPr><w:tcW w:w="4323" w:type="dxa"/><w:tcBorders><w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:left w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:right w:val="single" w:sz="4" w:space="0" w:color="000000"/></w:tcBorders></w:tcPr><w:p w14:paraId="52910170" w14:textId="293812B8" w:rsidR="00C72E78" w:rsidRPr="00F600EA" w:rsidRDefault="00D33112" w:rsidP="00900D1C"><w:pPr><w:spacing w:after="0" w:line="259" w:lineRule="auto"/><w:ind w:left="2" w:firstLine="0"/><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/></w:rPr></w:pPr><w:r w:rsidRPr="00F600EA"><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:color w:val="000000"/></w:rPr><w:t>Stage
+<w:tcPr><w:tcW w:w="4321" w:type="dxa"/><w:tcBorders><w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:left w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:right w:val="single" w:sz="4" w:space="0" w:color="000000"/></w:tcBorders></w:tcPr><w:p w14:paraId="1FF0F68A" w14:textId="6732EEF7" w:rsidR="00C72E78" w:rsidRPr="00F600EA" w:rsidRDefault="00D33112" w:rsidP="00900D1C"><w:pPr><w:spacing w:after="0" w:line="259" w:lineRule="auto"/><w:ind w:left="0" w:firstLine="0"/><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/></w:rPr></w:pPr><w:r w:rsidRPr="00F600EA"><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:color w:val="000000"/></w:rPr><w:t>Time (sec)
+<w:trPr><w:trHeight w:val="370"/></w:trPr><w:tc><w:tcPr><w:tcW w:w="4323" w:type="dxa"/><w:tcBorders><w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:left w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:right w:val="single" w:sz="4" w:space="0" w:color="000000"/></w:tcBorders></w:tcPr><w:p w14:paraId="6E6B35FD" w14:textId="28065692" w:rsidR="00C72E78" w:rsidRPr="00F600EA" w:rsidRDefault="00D33112" w:rsidP="00900D1C"><w:pPr><w:spacing w:after="0" w:line="259" w:lineRule="auto"/><w:ind w:left="2" w:firstLine="0"/><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/></w:rPr></w:pPr><w:proofErr w:type="spellStart"/><w:r w:rsidRPr="00F600EA"><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:color w:val="000000"/></w:rPr><w:t>data_loading_and_cleaning
+<w:tcPr><w:tcW w:w="4321" w:type="dxa"/><w:tcBorders><w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:left w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:right w:val="single" w:sz="4" w:space="0" w:color="000000"/></w:tcBorders></w:tcPr><w:p w14:paraId="220318FB" w14:textId="1633D48A" w:rsidR="00C72E78" w:rsidRPr="00F600EA" w:rsidRDefault="00D33112" w:rsidP="00900D1C"><w:pPr><w:spacing w:after="0" w:line="259" w:lineRule="auto"/><w:ind w:left="0" w:firstLine="0"/><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/></w:rPr></w:pPr><w:r w:rsidRPr="00F600EA"><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:color w:val="000000"/></w:rPr><w:t>0.070
+<w:trPr><w:trHeight w:val="370"/></w:trPr><w:tc><w:tcPr><w:tcW w:w="4323" w:type="dxa"/><w:tcBorders><w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:left w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:right w:val="single" w:sz="4" w:space="0" w:color="000000"/></w:tcBorders></w:tcPr><w:p w14:paraId="5E3B95F9" w14:textId="5D6D8022" w:rsidR="00C72E78" w:rsidRPr="00F600EA" w:rsidRDefault="00D33112" w:rsidP="00900D1C"><w:pPr><w:spacing w:after="0" w:line="259" w:lineRule="auto"/><w:ind w:left="2" w:firstLine="0"/><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/></w:rPr></w:pPr><w:proofErr w:type="spellStart"/><w:r w:rsidRPr="00F600EA"><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:color w:val="000000"/></w:rPr><w:t>sequential_preprocessing
+<w:tcPr><w:tcW w:w="4321" w:type="dxa"/><w:tcBorders><w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:left w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:right w:val="single" w:sz="4" w:space="0" w:color="000000"/></w:tcBorders></w:tcPr><w:p w14:paraId="2EF553FD" w14:textId="4CD97590" w:rsidR="00C72E78" w:rsidRPr="00F600EA" w:rsidRDefault="00D33112" w:rsidP="00900D1C"><w:pPr><w:spacing w:after="0" w:line="259" w:lineRule="auto"/><w:ind w:left="0" w:firstLine="0"/><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/></w:rPr></w:pPr><w:r w:rsidRPr="00F600EA"><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:color w:val="000000"/></w:rPr><w:t>0.019
+<w:trPr><w:trHeight w:val="370"/></w:trPr><w:tc><w:tcPr><w:tcW w:w="4323" w:type="dxa"/><w:tcBorders><w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:left w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:right w:val="single" w:sz="4" w:space="0" w:color="000000"/></w:tcBorders></w:tcPr><w:p w14:paraId="6E9FC2DC" w14:textId="4D7FEDA7" w:rsidR="00C72E78" w:rsidRPr="00F600EA" w:rsidRDefault="00D33112" w:rsidP="00900D1C"><w:pPr><w:spacing w:after="0" w:line="259" w:lineRule="auto"/><w:ind w:left="2" w:firstLine="0"/><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/></w:rPr></w:pPr><w:proofErr w:type="spellStart"/><w:r w:rsidRPr="00F600EA"><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:color w:val="000000"/></w:rPr><w:lastRenderedPageBreak/><w:t>parallel_preprocessing
+<w:tcPr><w:tcW w:w="4321" w:type="dxa"/><w:tcBorders><w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:left w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:right w:val="single" w:sz="4" w:space="0" w:color="000000"/></w:tcBorders></w:tcPr><w:p w14:paraId="02036B9C" w14:textId="3FCCFF6D" w:rsidR="00C72E78" w:rsidRPr="00F600EA" w:rsidRDefault="00D33112" w:rsidP="00900D1C"><w:pPr><w:spacing w:after="0" w:line="259" w:lineRule="auto"/><w:ind w:left="0" w:firstLine="0"/><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/></w:rPr></w:pPr><w:r w:rsidRPr="00F600EA"><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:color w:val="000000"/></w:rPr><w:t>0.997
+<w:trPr><w:trHeight w:val="370"/></w:trPr><w:tc><w:tcPr><w:tcW w:w="4323" w:type="dxa"/><w:tcBorders><w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:left w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:right w:val="single" w:sz="4" w:space="0" w:color="000000"/></w:tcBorders></w:tcPr><w:p w14:paraId="41BCCB84" w14:textId="366FD7AF" w:rsidR="00C72E78" w:rsidRPr="00F600EA" w:rsidRDefault="00D33112" w:rsidP="00900D1C"><w:pPr><w:spacing w:after="0" w:line="259" w:lineRule="auto"/><w:ind w:left="2" w:firstLine="0"/><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/></w:rPr></w:pPr><w:proofErr w:type="spellStart"/><w:r w:rsidRPr="00F600EA"><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:color w:val="000000"/></w:rPr><w:t>xgboost_training
+<w:tcPr><w:tcW w:w="4321" w:type="dxa"/><w:tcBorders><w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:left w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:right w:val="single" w:sz="4" w:space="0" w:color="000000"/></w:tcBorders></w:tcPr><w:p w14:paraId="02D84B97" w14:textId="7BB21B4E" w:rsidR="00C72E78" w:rsidRPr="00F600EA" w:rsidRDefault="00D33112" w:rsidP="00900D1C"><w:pPr><w:spacing w:after="0" w:line="259" w:lineRule="auto"/><w:ind w:left="0" w:firstLine="0"/><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/></w:rPr></w:pPr><w:r w:rsidRPr="00F600EA"><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:color w:val="000000"/></w:rPr><w:t>4.473
+<w:trPr><w:trHeight w:val="370"/></w:trPr><w:tc><w:tcPr><w:tcW w:w="4323" w:type="dxa"/><w:tcBorders><w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:left w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:right w:val="single" w:sz="4" w:space="0" w:color="000000"/></w:tcBorders></w:tcPr><w:p w14:paraId="17CC5C35" w14:textId="7ACE6B28" w:rsidR="00C72E78" w:rsidRPr="00F600EA" w:rsidRDefault="00D33112" w:rsidP="00900D1C"><w:pPr><w:spacing w:after="0" w:line="259" w:lineRule="auto"/><w:ind w:left="2" w:firstLine="0"/><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/></w:rPr></w:pPr><w:proofErr w:type="spellStart"/><w:r w:rsidRPr="00F600EA"><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:color w:val="000000"/></w:rPr><w:t>lstm_training
+<w:tcPr><w:tcW w:w="4321" w:type="dxa"/><w:tcBorders><w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:left w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:right w:val="single" w:sz="4" w:space="0" w:color="000000"/></w:tcBorders></w:tcPr><w:p w14:paraId="15FA2530" w14:textId="5BF1C60E" w:rsidR="00C72E78" w:rsidRPr="00F600EA" w:rsidRDefault="00D33112" w:rsidP="00900D1C"><w:pPr><w:spacing w:after="0" w:line="259" w:lineRule="auto"/><w:ind w:left="0" w:firstLine="0"/><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/></w:rPr></w:pPr><w:r w:rsidRPr="00F600EA"><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:color w:val="000000"/></w:rPr><w:t>29.182
+<w:trPr><w:trHeight w:val="370"/></w:trPr><w:tc><w:tcPr><w:tcW w:w="4323" w:type="dxa"/><w:tcBorders><w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:left w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:right w:val="single" w:sz="4" w:space="0" w:color="000000"/></w:tcBorders></w:tcPr><w:p w14:paraId="7121AAD9" w14:textId="6547EFE9" w:rsidR="00C72E78" w:rsidRPr="00F600EA" w:rsidRDefault="00D33112" w:rsidP="00900D1C"><w:pPr><w:spacing w:after="0" w:line="259" w:lineRule="auto"/><w:ind w:left="2" w:firstLine="0"/><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/></w:rPr></w:pPr><w:r w:rsidRPr="00F600EA"><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:color w:val="000000"/></w:rPr><w:t>inference
+<w:tcPr><w:tcW w:w="4321" w:type="dxa"/><w:tcBorders><w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:left w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:right w:val="single" w:sz="4" w:space="0" w:color="000000"/></w:tcBorders></w:tcPr><w:p w14:paraId="33A42E9C" w14:textId="13CB9BE8" w:rsidR="00C72E78" w:rsidRPr="00F600EA" w:rsidRDefault="00D33112" w:rsidP="00900D1C"><w:pPr><w:spacing w:after="0" w:line="259" w:lineRule="auto"/><w:ind w:left="0" w:firstLine="0"/><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/></w:rPr></w:pPr><w:r w:rsidRPr="00F600EA"><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:color w:val="000000"/></w:rPr><w:t>1.314
+<w:trPr><w:trHeight w:val="372"/></w:trPr><w:tc><w:tcPr><w:tcW w:w="4323" w:type="dxa"/><w:tcBorders><w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:left w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:right w:val="single" w:sz="4" w:space="0" w:color="000000"/></w:tcBorders></w:tcPr><w:p w14:paraId="6950FF74" w14:textId="0528DA18" w:rsidR="00C72E78" w:rsidRPr="00F600EA" w:rsidRDefault="00D33112" w:rsidP="00900D1C"><w:pPr><w:spacing w:after="0" w:line="259" w:lineRule="auto"/><w:ind w:left="2" w:firstLine="0"/><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/></w:rPr></w:pPr><w:proofErr w:type="spellStart"/><w:r w:rsidRPr="00F600EA"><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:color w:val="000000"/></w:rPr><w:t>total_runtime
+<w:tcPr><w:tcW w:w="4321" w:type="dxa"/><w:tcBorders><w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:left w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="000000"/><w:right w:val="single" w:sz="4" w:space="0" w:color="000000"/></w:tcBorders></w:tcPr><w:p w14:paraId="6364EE90" w14:textId="0B4370C9" w:rsidR="00C72E78" w:rsidRPr="00F600EA" w:rsidRDefault="00D33112" w:rsidP="00900D1C"><w:pPr><w:spacing w:after="0" w:line="259" w:lineRule="auto"/><w:ind w:left="0" w:firstLine="0"/><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/></w:rPr></w:pPr><w:r w:rsidRPr="00F600EA"><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:color w:val="000000"/></w:rPr><w:t>36.121
+10. Analysis and Discussion
+10.1 Comparative Predictive 
+Modeling
+The superiority of the LSTM (RMSE 4.0935) confirms the 
+Temporal Persistence
+ of air quality data. Pollutants like PM2.5 do not dissipate instantly; they follow a "
+memorydriven
+" path influenced by previous concentrations. LSTM’s gated architecture successfully captured these long-term dependencies.
+Conversely, 
+XGBoost’s
+ performance (RMSE 4.3425) is impressive given its significantly lower training time. It serves as an excellent "efficiency-first" model. The Hybrid model’s slight underperformance compared to the LSTM alone suggests that the current weighting (fixed averaging) may need to be dynamic—giving more weight to LSTM during 
+highvolatility
+ periods and more to 
+XGBoost
+ during stable atmospheric conditions.
+10.2 The Parallelization Paradox
+The most significant finding for HPC is the 
+1:52 ratio
+ between sequential (0.019s) and parallel (0.997s) preprocessing. This result is a textbook example of 
+Communication Overhead
+.
+Process Spawning:
+ In Python, the 
+multiprocessing
+ (used by 
+joblib
+) requires "pickling" data to send it to different CPU cores.
+Granularity:
+ The task (creating 20-step windows) is too "fine-grained." The time it takes to move data from the main memory to a new process core is greater than the time saved by the core’s calculation. This analysis proves that 
+Parallelism $\
+neq
+$ Speed
+ unless the dataset reaches a critical mass (likely $&gt;100,000$ rows for this specific task).
+10.3 Feature Interpretability
+The Feature Importance Plot (Section 9.6) provides "Black Box" transparency. It revealed that the most recent lags (e.g., $t-1$, $t-2$) are the strongest predictors, but meteorological features like 
+Humidity
+ acted as critical "multipliers" for NO2 and CO concentrations.
+11. Advantages and Limitations
+11.1 Advantages
+Hybrid Error Compensation:
+ The hybrid model leverages the "Bias-Variance" strengths of both architectures. 
+XGBoost
+ handles local non-linearities (Bias reduction), while LSTM manages long-term temporal variance.
+Feature Interpretability:
+ Through the 
+XGBoost
+ branch, we gain "Feature Importance" scores. This allows us to move beyond a "Black Box" approach and understand that specific variables (like CO or Humidity) are the primary drivers of the AQI.
+Computational Benchmarking:
+ The project does not just provide a model; it provides a 
+Performance Profile
+. By documenting stage timings (e.g., LSTM taking 80% of the runtime), we provide a roadmap for where future optimization (like GPU migration) is most needed.
+Robustness to Noise:
+ The cleaning and interpolation phase ensures the model is resilient to sensor malfunctions or missing hourly reports, which are common in real-world environmental monitoring.
+11.2 Limitations
+The Negative Scaling Effect:
+ As observed in our results (0.019s vs 0.997s), parallelization is not a "silver bullet." On localized datasets, the overhead of Python’s Global Interpreter Lock (GIL) and process spawning makes parallel preprocessing inefficient.
+Training Latency:
+ LSTM training is an iterative, sequential process. You cannot easily parallelize the internal steps of a single LSTM layer across CPU cores, leading to a significant time bottleneck (29 seconds for a relatively small dataset).
+Weight Sensitivity:
+ The Hybrid model currently uses fixed weighted averaging. If the weights are not perfectly tuned, a lower-performing branch (
+XGBoost
+) can "pull down" the accuracy of the superior branch (LSTM).
+Cold Start Problem:
+ LSTMs require a full "window" of historical data (e.g., 20 hours) to make an accurate prediction. For a brand-new sensor station, there is a "blind spot" until enough history is collected.
+11. Conclusion
+The successful development and evaluation of this hybrid air quality forecasting system demonstrate the power of integrating diverse computational paradigms—Machine Learning, Deep Learning, and High-Performance Computing—into a unified pipeline. This project has effectively addressed the complex, non-linear, and non-stationary nature of Air Quality Index (AQI) prediction by leveraging the structural strengths of both 
+XGBoost
+ and LSTM architectures. By implementing a modular pipeline that moves from robust data cleaning and interpolation to advanced neural network training, the system provides a reliable and interpretable framework for environmental monitoring.
+Experimental results conclude that Long Short-Term Memory (LSTM) networks are the most capable individual architecture for atmospheric time-series forecasting, achieving a superior RMSE of 4.0935. This confirms that the temporal memory provided by LSTM's gated cell state is essential for capturing the persistence and lag-based dynamics of urban pollutants. While the 
+XGBoost
+ regressor achieved a slightly higher error rate of 4.3425, it proved to be a formidable baseline with significantly lower training latency, completing its task in a fraction of the time required by the deep learning branch. The Hybrid model, by synthesizing both outputs, provided a balanced and robust prediction, proving that ensemble methods can stabilize forecasts by mitigating the individual variances of machine learning and deep learning models.
+Beyond predictive accuracy, this project yielded a vital lesson in Systems Engineering and HPC. The comparison between sequential (0.019s) and parallel (0.997s) preprocessing provided empirical evidence of the "Parallelization Paradox." It demonstrated that parallelism is not a panacea for performance; rather, it is a tool of scale. For medium-sized datasets like 
+AirQualityUCI
+, the overhead involved in process spawning, memory pickling, and inter-process communication creates a bottleneck that outweighs the benefits of distributed execution. This finding reinforces the importance of Workload-Resource Matching—the practice of selecting a computational strategy that is strictly proportionate to the complexity and size of the data.
+In a broader context, this work contributes to the advancement of Smart City technologies and Public Health. Accurate AQI forecasting is a critical prerequisite for early-warning systems that protect vulnerable populations from respiratory and cardiovascular risks. By proving that high-accuracy models can be trained on standard CPU hardware within manageable runtimes, this project demonstrates that sophisticated environmental monitoring is accessible and scalable, even for municipalities with limited access to high-end supercomputing resources. Overall, the project 
+fulfills
+ all its stated objectives, offering a sophisticated blend of predictive intelligence and computational analysis that serves as a foundational blueprint for future research in environmental data science.
+13. Future Work
+13.1 
+Spatio
+-Temporal 
+Modeling
+ Air pollution is not just a time-series problem; it is a 
+spatial
+ one. Future work will involve incorporating data from multiple sensor locations simultaneously using 
+Graph Convolutional Networks (GCNs)
+ combined with LSTMs. This would allow the model to predict how pollution "travels" from one part of a city to another based on wind speed and direction.
+13.2 GPU and Edge Computing Optimization
+CUDA Acceleration:
+ Migrating the LSTM layers from CPU to NVIDIA GPUs using the 
+CuDNN
+ library would likely reduce training time from 29 seconds to under 2 seconds.
+Edge Deployment:
+ Using 
+TensorFlow Lite
+, the model could be compressed to run directly on low-power IoT hardware (like Raspberry Pi or Jetson Nano) at the sensor site, reducing the need for cloud data transfer.
+13.3 Dynamic Hybridization (Meta-Learning)
+Instead of a fixed weighted average, we propose using a 
+Stacking Regressor
+ or a "Meta-Learner." This would be a third, smaller model that learns 
+when
+ to trust 
+XGBoost
+ (e.g., during stable weather) and 
+when
+ to trust LSTM (e.g., during rapid pollution spikes).
+13.4 Explainable AI (XAI) Integration
+To make the model more useful for policy-makers, we intend to integrate 
+SHAP (
+SHapley
+ Additive 
+exPlanations
+)
+. This would provide a detailed visual breakdown of 
+why
+ the model predicted a "High AQI" alert for a specific hour, citing the exact contribution of each pollutant and weather variable.
+13.5 Online Learning and Auto-Retraining
+Environmental patterns change with the seasons. We plan to implement an 
+Online Learning
+ pipeline where the model automatically performs "incremental training" as new data arrives every hour, ensuring the system never becomes outdated.
+1
+4
+. References
+Chen, T., &amp; 
+Guestrin
+, C. (2016).
+ 
+XGBoost
+: A Scalable Tree Boosting System.
+ KDD '16.
+Hochreiter, S., &amp; 
+Schmidhuber
+, J. (1997).
+ 
+Long Short-Term Memory.
+ Neural Computation.
+UCI Machine Learning Repository.
+ 
+AirQualityUCI
+ Dataset.
+ [Online].
+Amdahl, G. M. (1967).
+ 
+Validity of the single processor approach to achieving large scale computing capabilities.
+TensorFlow Developers (2024).
+ 
+Keras
+ Documentation for RNNs.

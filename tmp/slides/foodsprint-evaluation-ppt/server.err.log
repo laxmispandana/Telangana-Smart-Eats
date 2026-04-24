@@ -1,0 +1,9 @@
+2026-04-19 20:41:52,611 INFO [werkzeug] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-04-19 20:41:52,613 INFO [werkzeug] [33mPress CTRL+C to quit[0m
+2026-04-19 20:42:09,747 INFO [werkzeug] 127.0.0.1 - - [19/Apr/2026 20:42:09] "GET / HTTP/1.1" 200 -
+2026-04-19 20:42:17,796 INFO [werkzeug] 127.0.0.1 - - [19/Apr/2026 20:42:17] "GET / HTTP/1.1" 200 -
+2026-04-19 20:42:17,876 INFO [werkzeug] 127.0.0.1 - - [19/Apr/2026 20:42:17] "GET /static/css/styles.css HTTP/1.1" 200 -
+2026-04-19 20:42:17,878 INFO [werkzeug] 127.0.0.1 - - [19/Apr/2026 20:42:17] "GET /static/img/foodsprint-logo.svg HTTP/1.1" 200 -
+2026-04-19 20:42:17,879 INFO [werkzeug] 127.0.0.1 - - [19/Apr/2026 20:42:17] "GET /static/js/main.js HTTP/1.1" 200 -
+2026-04-19 20:42:21,818 INFO [werkzeug] 127.0.0.1 - - [19/Apr/2026 20:42:21] "GET /api/nearby-restaurants?user_lat=17.385&user_lon=78.4867&limit=12&max_distance_km=10 HTTP/1.1" 200 -

@@ -11,16 +11,23 @@
 <section class="hero">
     <div class="hero-copy">
         <p class="eyebrow">FoodSprint</p>
-        <h1>Nearby restaurants on open maps, built for Telangana.</h1>
-        <p class="hero-text">Explore restaurants around you with OpenStreetMap, browse the FoodSprint catalog, and keep the full cart, order, payment, and diet experience you already have.</p>
+        <h1>Order smarter across Telangana.</h1>
+        <p class="hero-text">Now with saved addresses, pickup and scheduled orders, live ETA, loyalty rewards, healthier filters, favorites, support chat, and reorder-ready history.</p>
         <div class="hero-actions">
             <a href="#map-discovery" class="btn btn-primary">Open nearby map</a>
-            <a href="{{ url_for('main.diet') }}" class="btn btn-secondary">Plan my diet</a>
+            <a href="{{ url_for('main.checkout') if nav_user and cart_meta.count else url_for('main.account') if nav_user else url_for('main.signup') }}" class="btn btn-secondary">
+                {% if nav_user and cart_meta.count %}Finish checkout{% elif nav_user %}Open account{% else %}Create account{% endif %}
+            </a>
         </div>
         <div class="hero-stats">
             <div><strong>{{ restaurants|length }}</strong><span>Catalog kitchens</span></div>
-            <div><strong>OSM</strong><span>OpenStreetMap discovery</span></div>
-            <div><strong>Live</strong><span>Location-aware search</span></div>
+            <div><strong>{{ promo_codes|length }}</strong><span>Live promo codes</span></div>
+            <div><strong>{{ 'ON' if nav_user else 'NEW' }}</strong><span>Loyalty and referral wallet</span></div>
+        </div>
+        <div class="tag-row">
+            {% for promo in promo_codes %}
+                <span class="tag">{{ promo.code }} • {{ promo.description }}</span>
+            {% endfor %}
         </div>
     </div>
     <div class="hero-panel">
@@ -31,6 +38,7 @@
                     <div class="hero-visual-caption">
                         <span class="tag">{{ restaurant.city }}</span>
                         <h3>{{ restaurant.name }}</h3>
+                        <p>{{ restaurant.profile.offers_text if restaurant.profile else 'Fast delivery and smarter checkout' }}</p>
                     </div>
                 </article>
             {% endfor %}
@@ -77,6 +85,16 @@
                 <option value="{{ city }}">{{ city }}</option>
             {% endfor %}
         </select>
+        <select id="budgetFilter" aria-label="Average price">
+            <option value="">Any budget</option>
+            <option value="200">Under ₹200</option>
+            <option value="250">Under ₹250</option>
+        </select>
+        <label class="toggle"><input type="checkbox" id="openNowFilter"> Open now</label>
+        <label class="toggle"><input type="checkbox" id="freeDeliveryFilter"> Free delivery</label>
+        <label class="toggle"><input type="checkbox" id="pureVegFilter"> Pure veg</label>
+        <label class="toggle"><input type="checkbox" id="fastDeliveryFilter"> Fast delivery</label>
+        <label class="toggle"><input type="checkbox" id="offersOnlyFilter"> Offers</label>
         <button class="category-chip active" type="button" data-food-filter="">All</button>
         <button class="category-chip" type="button" data-food-filter="veg">Veg</button>
         <button class="category-chip" type="button" data-food-filter="non-veg">Non-Veg</button>
@@ -116,7 +134,7 @@
                             <h3>{{ restaurant.name }}</h3>
                             <p>{{ restaurant.area }}, {{ restaurant.city }}</p>
                         </div>
-                        <strong>⭐ {{ restaurant.rating }}</strong>
+                        <strong>★ {{ restaurant.rating }}</strong>
                     </div>
                     <div class="nutrition-row">
                         <span class="tag">{{ restaurant.category|title }}</span>
@@ -133,46 +151,13 @@
     </div>
 </section>
 
-<section class="section">
-    <div class="section-heading">
-        <div>
-            <p class="eyebrow">Top rated</p>
-            <h2>Top Rated Restaurants</h2>
-        </div>
-    </div>
-    <div class="restaurant-grid">
-        {% for restaurant in top_rated %}
-            <article class="restaurant-card static-card">
-                <img loading="lazy" src="{{ restaurant.image_url }}" alt="{{ restaurant.name }}">
-                <div class="restaurant-card-overlay">
-                    <div class="restaurant-topline">
-                        <div>
-                            <h3>{{ restaurant.name }}</h3>
-                            <p>{{ restaurant.area }}, {{ restaurant.city }}</p>
-                        </div>
-                        <strong>⭐ {{ restaurant.rating }}</strong>
-                    </div>
-                    <div class="nutrition-row">
-                        <span class="tag">{{ restaurant.category|title }}</span>
-                        <span class="tag">{{ restaurant.delivery_time }} mins</span>
-                    </div>
-                    <p>{{ restaurant.cuisine }}</p>
-                    <div class="menu-footer">
-                        <span>Unique restaurant imagery</span>
-                        <a href="{{ url_for('main.restaurant_detail', restaurant_id=restaurant.id) }}" class="btn btn-mini">View Menu</a>
-                    </div>
-                </div>
-            </article>
-        {% endfor %}
-    </div>
-</section>
-
 <section class="section" id="restaurants">
     <div class="section-heading">
         <div>
             <p class="eyebrow">All restaurants</p>
             <h2>Order across Telangana</h2>
         </div>
+        <p class="section-copy">Favorites, promo tags, pure veg markers, and order-time filters are now built in.</p>
     </div>
     <div class="restaurant-grid" id="restaurantList">
         {% for restaurant in restaurants %}
@@ -189,16 +174,33 @@
                             <h3>{{ restaurant.name }}</h3>
                             <p>{{ restaurant.area }}, {{ restaurant.city }}</p>
                         </div>
-                        <strong>⭐ {{ restaurant.rating }}</strong>
+                        <strong>★ {{ restaurant.rating }}</strong>
                     </div>
                     <div class="nutrition-row">
                         <span class="tag">{{ restaurant.category|title }}</span>
                         <span class="tag">{{ restaurant.delivery_time }} mins</span>
+                        <span class="tag">₹{{ ((restaurant.profile.delivery_fee if restaurant.profile else 35)|round(0)) }} delivery</span>
+                        {% if restaurant.category == 'veg' %}<span class="tag">Pure Veg</span>{% endif %}
                     </div>
                     <p>{{ restaurant.cuisine }}</p>
+                    <div class="nutrition-row">
+                        {% if restaurant.profile and restaurant.profile.offers_text %}
+                            <span class="tag">{{ restaurant.profile.offers_text }}</span>
+                        {% endif %}
+                        {% if restaurant.profile and restaurant.profile.pickup_enabled %}
+                            <span class="tag">Pickup</span>
+                        {% endif %}
+                        {% if restaurant.profile and is_restaurant_open(restaurant.profile) %}
+                            <span class="tag">Open Now</span>
+                        {% endif %}
+                    </div>
                     <div class="menu-footer">
-                        <span>Order tracking enabled</span>
                         <a href="{{ url_for('main.restaurant_detail', restaurant_id=restaurant.id) }}" class="btn btn-mini">View Menu</a>
+                        {% if nav_user %}
+                            <form method="post" action="{{ url_for('main.toggle_favorite', restaurant_id=restaurant.id) }}">
+                                <button class="btn btn-mini" type="submit">{% if restaurant.id in favorite_ids %}Saved{% else %}Save{% endif %}</button>
+                            </form>
+                        {% endif %}
                     </div>
                 </div>
             </article>
@@ -219,7 +221,7 @@
                 <img loading="lazy" src="{{ item.image_url }}" alt="{{ item.name }}">
                 <div class="menu-card-body">
                     <div class="menu-topline">
-                        {% for tag in menu_item_tags(item)[:2] %}
+                        {% for tag in menu_item_tags(item)[:3] %}
                             <span class="tag">{{ tag }}</span>
                         {% endfor %}
                     </div>

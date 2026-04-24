@@ -8,8 +8,11 @@
         <label>Full name<input type="text" name="name" required></label>
         <label>Email<input type="email" name="email" required></label>
         <label>Phone<input type="tel" name="phone" required></label>
-        <label>Location<input type="text" name="location" placeholder="Hyderabad, Telangana" required></label>
+        <label>Location<input type="text" name="location" placeholder="Flat 2B, Kondapur, Hyderabad" required></label>
         <label>Password<input type="password" name="password" minlength="6" required></label>
+        <label>Referral code
+            <input type="text" name="referral_code" placeholder="Optional referral code">
+        </label>
         <button class="btn btn-primary" type="submit">Create account</button>
         <p class="auth-switch">Already have an account? <a href="{{ url_for('main.login') }}">Login</a></p>
     </form>

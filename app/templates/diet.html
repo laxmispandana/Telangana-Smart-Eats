@@ -7,7 +7,7 @@
             <p class="eyebrow">AI diet recommendations</p>
             <h1>Goal-based meal guidance</h1>
         </div>
-        <p class="section-copy">FoodSprint combines menu categories, calorie data, and healthy tags to suggest what fits your goal best.</p>
+        <p class="section-copy">FoodSprint now supports diabetic-friendly, high-protein, low-carb, and allergy-aware planning on top of the original goals.</p>
     </div>
     <form method="get" class="filters">
         <select name="goal">
@@ -15,6 +15,15 @@
             <option value="muscle_gain" {% if selected_goal == 'muscle_gain' %}selected{% endif %}>Muscle Gain</option>
             <option value="balanced_diet" {% if selected_goal == 'balanced_diet' %}selected{% endif %}>Balanced Diet</option>
             <option value="vegetarian" {% if selected_goal == 'vegetarian' %}selected{% endif %}>Vegetarian</option>
+            <option value="diabetic_friendly" {% if selected_goal == 'diabetic_friendly' %}selected{% endif %}>Diabetic Friendly</option>
+            <option value="high_protein" {% if selected_goal == 'high_protein' %}selected{% endif %}>High Protein</option>
+            <option value="low_carb" {% if selected_goal == 'low_carb' %}selected{% endif %}>Low Carb</option>
+        </select>
+        <select name="allergy">
+            <option value="" {% if not selected_allergy %}selected{% endif %}>No allergy filter</option>
+            <option value="dairy" {% if selected_allergy == 'dairy' %}selected{% endif %}>Dairy free</option>
+            <option value="gluten" {% if selected_allergy == 'gluten' %}selected{% endif %}>Gluten free</option>
+            <option value="seafood" {% if selected_allergy == 'seafood' %}selected{% endif %}>Seafood free</option>
         </select>
         <button class="btn btn-primary" type="submit">Generate plan</button>
     </form>

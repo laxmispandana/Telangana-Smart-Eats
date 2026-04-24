@@ -47,6 +47,31 @@ function closeMiniCart() {
     if (miniCart) miniCart.classList.remove("mini-cart-open");
 }
 
+function customizationPayloadFor(itemId) {
+    const container = document.querySelector(`[data-customization-form][data-item-id="${itemId}"]`);
+    if (!container) {
+        return {
+            spice_level: "Medium",
+            removed_ingredients: "",
+            selected_addons: [],
+            combo_upgrade: "Regular",
+            allergy_note: "",
+        };
+    }
+
+    const selectedAddons = Array.from(
+        container.querySelector('[data-customize="selected_addons"]')?.selectedOptions || []
+    ).map((option) => option.value);
+
+    return {
+        spice_level: container.querySelector('[data-customize="spice_level"]')?.value || "Medium",
+        removed_ingredients: container.querySelector('[data-customize="removed_ingredients"]')?.value || "",
+        selected_addons: selectedAddons,
+        combo_upgrade: container.querySelector('[data-customize="combo_upgrade"]')?.value || "Regular",
+        allergy_note: container.querySelector('[data-customize="allergy_note"]')?.value || "",
+    };
+}
+
 function renderMiniCart(cart) {
     if (!miniCartBody || !miniCartTotal) return;
 
@@ -64,6 +89,7 @@ function renderMiniCart(cart) {
                     <div>
                         <strong>${entry.name}</strong>
                         <p>${entry.quantity} x ${cartCurrency(entry.price)}</p>
+                        <small>${entry.customization_summary || ""}</small>
                     </div>
                 </div>
             `
@@ -94,10 +120,18 @@ function syncItemQuantity(itemId, quantity) {
 }
 
 function updateCartPageSummary(cart) {
-    const cartPageCount = document.getElementById("cartPageCount");
-    const cartPageTotal = document.getElementById("cartPageTotal");
-    if (cartPageCount) cartPageCount.textContent = cart.count;
-    if (cartPageTotal) cartPageTotal.textContent = cartCurrency(cart.total);
+    const mappings = [
+        ["cartPageCount", cart.count],
+        ["cartPageTotal", cartCurrency(cart.total)],
+        ["cartProteinTotal", `${cart.protein_total || 0}g`],
+        ["cartCarbsTotal", `${cart.carbs_total || 0}g`],
+        ["cartFatTotal", `${cart.fat_total || 0}g`],
+        ["cartCaloriesTotal", cart.calories_total || 0],
+    ];
+    mappings.forEach(([id, value]) => {
+        const element = document.getElementById(id);
+        if (element) element.textContent = value;
+    });
 }
 
 function updateCartItemCards(cart) {
@@ -132,10 +166,11 @@ async function postJson(url, payload) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
     });
+    const body = await response.json();
     if (!response.ok) {
-        throw new Error(`Request failed: ${response.status}`);
+        throw new Error(body.message || `Request failed: ${response.status}`);
     }
-    return response.json();
+    return body;
 }
 
 async function refreshCartState() {
@@ -160,7 +195,7 @@ async function changeCartQuantity(itemId, delta, absoluteQuantity = null) {
     const nextQty = absoluteQuantity !== null ? absoluteQuantity : Math.max(currentQty + delta, 0);
     const endpoint = delta > 0 && currentQty === 0 && absoluteQuantity === null ? "/cart/add" : "/cart/update";
     const payload = endpoint === "/cart/add"
-        ? { item_id: Number(itemId), quantity: 1 }
+        ? { item_id: Number(itemId), quantity: 1, ...customizationPayloadFor(itemId) }
         : { item_id: Number(itemId), quantity: nextQty };
 
     const cart = await postJson(endpoint, payload);
@@ -201,6 +236,7 @@ function formatPlaceSubtitle(place) {
     if (place.address) bits.push(place.address);
     if (place.cuisine) bits.push(place.cuisine);
     if (place.type) bits.push(place.type.replaceAll("_", " "));
+    if (place.offers_text) bits.push(place.offers_text);
     return bits.join(" • ");
 }
 
@@ -211,7 +247,7 @@ function buildNearbyCard(place, highlightFirst = false) {
     const actionMarkup = place.url
         ? `<a href="${place.url}" class="btn btn-mini">View Menu</a>`
         : `<span class="tag">Map place</span>`;
-    const ratingMarkup = place.rating ? `<strong>⭐ ${place.rating}</strong>` : `<strong>${place.distance_km.toFixed(1)} km</strong>`;
+    const ratingMarkup = place.rating ? `<strong>★ ${place.rating}</strong>` : `<strong>${place.distance_km.toFixed(1)} km</strong>`;
 
     return `
         <article class="restaurant-card static-card ${highlightFirst ? "restaurant-card-nearest" : ""}">
@@ -227,6 +263,7 @@ function buildNearbyCard(place, highlightFirst = false) {
                 <div class="nutrition-row">
                     <span class="tag">${(place.source || "osm").toUpperCase()}</span>
                     ${place.delivery_time ? `<span class="tag">${place.delivery_time} mins</span>` : ""}
+                    ${place.delivery_fee !== undefined ? `<span class="tag">₹${Math.round(place.delivery_fee)} delivery</span>` : ""}
                     <span class="tag">${place.distance_km.toFixed(1)} km</span>
                 </div>
                 <p>${formatPlaceSubtitle(place) || "Nearby restaurant found from OpenStreetMap."}</p>
@@ -263,7 +300,7 @@ function renderNearbyRestaurants(payload) {
                                 <strong>${place.name}</strong>
                                 <span>${place.distance_km.toFixed(1)} km</span>
                             </div>
-                            <p>${formatPlaceSubtitle(place) || "OpenStreetMap nearby place"}</p>
+                            <p>${formatPlaceSubtitle(place) || "Nearby place"}</p>
                         </a>
                     `
                 )
@@ -333,6 +370,12 @@ function readNearbyFilters() {
         keyword: document.getElementById("nearbyKeyword")?.value || "",
         maxDistanceKm: document.getElementById("distanceFilter")?.value || "10",
         minRating: document.getElementById("ratingFilter")?.value || "",
+        budgetCap: document.getElementById("budgetFilter")?.value || "",
+        openNow: document.getElementById("openNowFilter")?.checked,
+        freeDelivery: document.getElementById("freeDeliveryFilter")?.checked,
+        pureVeg: document.getElementById("pureVegFilter")?.checked,
+        fastDelivery: document.getElementById("fastDeliveryFilter")?.checked,
+        offersOnly: document.getElementById("offersOnlyFilter")?.checked,
     };
 }
 
@@ -349,7 +392,13 @@ async function loadNearbyRestaurants(lat, lon, cityOverride = "") {
     if (filters.type) params.set("type", filters.type);
     if (filters.keyword) params.set("keyword", filters.keyword);
     if (filters.minRating) params.set("min_rating", filters.minRating);
-    if (cityOverride || filters.city) params.set("city", cityOverride || filters.city);
+    if (filters.city || cityOverride) params.set("city", cityOverride || filters.city);
+    if (filters.budgetCap) params.set("budget_cap", filters.budgetCap);
+    if (filters.openNow) params.set("open_now", "1");
+    if (filters.freeDelivery) params.set("free_delivery", "1");
+    if (filters.pureVeg) params.set("pure_veg", "1");
+    if (filters.fastDelivery) params.set("fast_delivery", "1");
+    if (filters.offersOnly) params.set("offers_only", "1");
 
     const response = await fetch(`/api/nearby-restaurants?${params.toString()}`);
     if (!response.ok) {
@@ -415,7 +464,16 @@ function initMapDiscovery() {
         });
     });
 
-    ["cityFilter", "typeFilter", "distanceFilter", "ratingFilter"].forEach((id) => {
+    ["cityFilter", "typeFilter", "distanceFilter", "ratingFilter", "budgetFilter"].forEach((id) => {
+        document.getElementById(id)?.addEventListener("change", async () => {
+            await loadNearbyRestaurants(
+                nearbyState.currentLat ?? fallbackLat,
+                nearbyState.currentLon ?? fallbackLng
+            );
+        });
+    });
+
+    ["openNowFilter", "freeDeliveryFilter", "pureVegFilter", "fastDeliveryFilter", "offersOnlyFilter"].forEach((id) => {
         document.getElementById(id)?.addEventListener("change", async () => {
             await loadNearbyRestaurants(
                 nearbyState.currentLat ?? fallbackLat,

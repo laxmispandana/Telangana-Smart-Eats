@@ -7,13 +7,13 @@
             <p class="eyebrow">Admin panel</p>
             <h1>FoodSprint control center</h1>
         </div>
-        <p class="section-copy">Single-admin access with staff management, UPI settings, and complete order visibility.</p>
+        <p class="section-copy">Single-admin access now includes restaurant-owner style tools: business hours, delivery settings, stock control, analytics, refunds, and support operations.</p>
     </div>
     <div class="hero-stats admin-stats">
         <div><strong>{{ restaurants|length }}</strong><span>Restaurants</span></div>
         <div><strong>{{ total_menu_items }}</strong><span>Menu items</span></div>
         <div><strong>{{ recent_orders|length }}</strong><span>Orders</span></div>
-        <div><strong>{{ staff_members|length }}/{{ staff_limit }}</strong><span>Staff accounts</span></div>
+        <div><strong>{{ support_tickets|length }}</strong><span>Open support threads</span></div>
     </div>
 </section>
 
@@ -53,7 +53,53 @@
 
 <section class="section">
     <div class="admin-card">
-        <p class="eyebrow">Orders</p>
+        <p class="eyebrow">Restaurant analytics</p>
+        <h2>Orders, revenue, and favorites</h2>
+        <div class="admin-list">
+            {% for stat in analytics %}
+                <div class="order-admin-card">
+                    <div class="summary-row">
+                        <span>{{ stat.restaurant.name }}</span>
+                        <strong>Rs. {{ "%.0f"|format(stat.revenue) }}</strong>
+                    </div>
+                    <div class="nutrition-row">
+                        <span class="tag">{{ stat.orders }} orders</span>
+                        <span class="tag">{{ stat.favorites }} favorites</span>
+                        <span class="tag">{{ stat.restaurant.profile.offers_text if stat.restaurant.profile else 'No offer' }}</span>
+                    </div>
+                    <form method="post" action="{{ url_for('main.update_restaurant_profile', restaurant_id=stat.restaurant.id) }}">
+                        <div class="admin-inline-form">
+                            <label>Delivery fee<input type="number" name="delivery_fee" value="{{ stat.restaurant.profile.delivery_fee if stat.restaurant.profile else 0 }}" step="1"></label>
+                            <label>Min order<input type="number" name="min_order_amount" value="{{ stat.restaurant.profile.min_order_amount if stat.restaurant.profile else 149 }}" step="1"></label>
+                            <label>Opens<input type="time" name="opening_time" value="{{ stat.restaurant.profile.opening_time if stat.restaurant.profile else '09:00' }}"></label>
+                            <label>Closes<input type="time" name="closing_time" value="{{ stat.restaurant.profile.closing_time if stat.restaurant.profile else '23:00' }}"></label>
+                            <label>Support phone<input type="text" name="support_phone" value="{{ stat.restaurant.profile.support_phone if stat.restaurant.profile else '' }}"></label>
+                            <label>Offers<input type="text" name="offers_text" value="{{ stat.restaurant.profile.offers_text if stat.restaurant.profile else '' }}"></label>
+                            <label class="toggle"><input type="checkbox" name="pickup_enabled" {% if stat.restaurant.profile and stat.restaurant.profile.pickup_enabled %}checked{% endif %}> Pickup</label>
+                            <button class="btn btn-mini" type="submit">Save</button>
+                        </div>
+                    </form>
+                    <div class="admin-list">
+                        {% for item in stat.restaurant.menu_items[:4] %}
+                            <form method="post" action="{{ url_for('main.update_menu_item', item_id=item.id) }}">
+                                <div class="admin-inline-form">
+                                    <label>{{ item.name }} price<input type="number" name="price" value="{{ item.price }}" step="1"></label>
+                                    <label>Stock<input type="number" name="stock_count" value="{{ item.availability.stock_count if item.availability else 0 }}" step="1"></label>
+                                    <label class="toggle"><input type="checkbox" name="is_available" {% if not item.availability or item.availability.is_available %}checked{% endif %}> Available</label>
+                                    <button class="btn btn-mini" type="submit">Update</button>
+                                </div>
+                            </form>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="section admin-grid">
+    <div class="admin-card">
+        <p class="eyebrow">Orders and refunds</p>
         <h2>All orders</h2>
         <div class="admin-list">
             {% for order in recent_orders %}
@@ -66,11 +112,56 @@
                     <div class="nutrition-row">
                         <span class="tag">{{ order.status.replace('_', ' ') }}</span>
                         <span class="tag">{{ order.payment_status }}</span>
-                        <span class="tag">{{ order.latest_payment.method if order.latest_payment else 'UPI' }}</span>
+                        <span class="tag">{{ order.fulfillment.fulfillment_mode|title if order.fulfillment else 'Delivery' }}</span>
                     </div>
+                    {% if order.payment_status == 'REFUND_PENDING' %}
+                        <form method="post" action="{{ url_for('main.admin_mark_refund', order_id=order.id) }}">
+                            <button class="btn btn-mini" type="submit">Mark refunded</button>
+                        </form>
+                    {% endif %}
                 </div>
             {% else %}
                 <p>No orders yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="admin-card">
+        <p class="eyebrow">Support inbox</p>
+        <h2>Latest customer tickets</h2>
+        <div class="admin-list">
+            {% for ticket in support_tickets %}
+                <div class="order-admin-card">
+                    <div class="summary-row">
+                        <span>#{{ ticket.id }} • {{ ticket.subject }}</span>
+                        <strong>{{ ticket.status }}</strong>
+                    </div>
+                    <p>{{ ticket.message }}</p>
+                    {% for message in ticket.messages %}
+                        <p class="review-item"><strong>{{ message.sender_role|title }}:</strong> {{ message.message }}</p>
+                    {% endfor %}
+                    <form method="post" action="{{ url_for('main.admin_reply_support', ticket_id=ticket.id) }}">
+                        <label>Reply
+                            <input type="text" name="message" placeholder="Reply to customer">
+                        </label>
+                        <button class="btn btn-mini" type="submit">Send</button>
+                    </form>
+                    <form method="post" action="{{ url_for('main.admin_update_support_status', ticket_id=ticket.id) }}">
+                        <div class="admin-inline-form">
+                            <label>Status
+                                <select name="status">
+                                    <option value="OPEN" {% if ticket.status == 'OPEN' %}selected{% endif %}>OPEN</option>
+                                    <option value="ESCALATED" {% if ticket.status == 'ESCALATED' %}selected{% endif %}>ESCALATED</option>
+                                    <option value="RESOLVED" {% if ticket.status == 'RESOLVED' %}selected{% endif %}>RESOLVED</option>
+                                </select>
+                            </label>
+                            <label>Resolution notes<input type="text" name="resolution_notes" value="{{ ticket.resolution_notes or '' }}"></label>
+                            <button class="btn btn-mini" type="submit">Update</button>
+                        </div>
+                    </form>
+                </div>
+            {% else %}
+                <p>No support tickets yet.</p>
             {% endfor %}
         </div>
     </div>

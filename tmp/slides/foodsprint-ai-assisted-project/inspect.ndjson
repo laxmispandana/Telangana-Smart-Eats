@@ -1,0 +1,215 @@
+{"kind":"deck","id":"foodsprint-ai-assisted-project","slideCount":8,"slideSize":{"width":1280,"height":720}}
+{"kind":"slide","slide":1,"id":"zizuad"}
+{"kind":"slide","slide":2,"id":"gq4os7"}
+{"kind":"slide","slide":3,"id":"l6aitz"}
+{"kind":"slide","slide":4,"id":"ytiy0k"}
+{"kind":"slide","slide":5,"id":"xk37vn"}
+{"kind":"slide","slide":6,"id":"eal4vl"}
+{"kind":"slide","slide":7,"id":"2sdigs"}
+{"kind":"slide","slide":8,"id":"bj9exj"}
+{"kind":"image","slide":1,"id":"2","role":"fallback art plate","path":"fallback-data-url","bbox":[0,0,1280,720]}
+{"kind":"shape","slide":1,"id":"3","role":"cover base overlay","shapeType":"rect","bbox":[0,0,1280,720]}
+{"kind":"shape","slide":1,"id":"4","role":"cover decorative circle","shapeType":"ellipse","bbox":[842,72,350,350]}
+{"kind":"shape","slide":1,"id":"5","role":"cover decorative circle","shapeType":"ellipse","bbox":[1014,294,150,150]}
+{"kind":"shape","slide":1,"id":"6","role":"cover accent rule","shapeType":"rect","bbox":[64,86,7,455]}
+{"kind":"textbox","slide":1,"id":"7","role":"kicker","text":"AI ASSISTED CODING PROJECT","textPreview":"AI ASSISTED CODING PROJECT","textChars":26,"textLines":1,"bbox":[86,88,520,26]}
+{"kind":"textbox","slide":1,"id":"8","role":"cover title","text":"FoodSprint","textPreview":"FoodSprint","textChars":10,"textLines":1,"bbox":[82,130,785,184]}
+{"kind":"textbox","slide":1,"id":"9","role":"cover subtitle","text":"A Flask web app for Telangana restaurant discovery, UPI checkout, diet recommendations, and admin or staff order operations.","textPreview":"A Flask web app for Telangana restaurant discovery, UPI checkout, diet recommendations, and admin or staff order operations.","textChars":124,"textLines":1,"bbox":[86,326,610,86]}
+{"kind":"shape","slide":1,"id":"10","role":"cover moment panel","shapeType":"roundRect","bbox":[86,456,474,92]}
+{"kind":"textbox","slide":1,"id":"11","role":"cover moment","text":"Prompt-driven development from idea to documentation and review","textPreview":"Prompt-driven development from idea to documentation and review","textChars":63,"textLines":1,"bbox":[112,478,420,40]}
+{"kind":"shape","slide":1,"id":"12","role":"cover highlight panel","shapeType":"roundRect","bbox":[756,122,434,452]}
+{"kind":"textbox","slide":1,"id":"13","role":"cover panel title","text":"Why this project matters","textPreview":"Why this project matters","textChars":24,"textLines":1,"bbox":[790,158,300,30]}
+{"kind":"textbox","slide":1,"id":"14","role":"cover panel subtitle","text":"It demonstrates full-stack development with AI-assisted iteration, review, and presentation support.","textPreview":"It demonstrates full-stack development with AI-assisted iteration, review, and presentation support.","textChars":100,"textLines":1,"bbox":[790,204,332,66]}
+{"kind":"shape","slide":1,"id":"15","role":"tag: Flask + SQLAlchemy","shapeType":"roundRect","bbox":[790,294,166,34]}
+{"kind":"textbox","slide":1,"id":"16","role":"tag text","text":"Flask + SQLAlchemy","textPreview":"Flask + SQLAlchemy","textChars":18,"textLines":1,"bbox":[804,301,138,20]}
+{"kind":"shape","slide":1,"id":"17","role":"tag: OpenStreetMap","shapeType":"roundRect","bbox":[966,294,138,34]}
+{"kind":"textbox","slide":1,"id":"18","role":"tag text","text":"OpenStreetMap","textPreview":"OpenStreetMap","textChars":13,"textLines":1,"bbox":[980,301,110,20]}
+{"kind":"shape","slide":1,"id":"19","role":"tag: UPI QR","shapeType":"roundRect","bbox":[1112,294,78,34]}
+{"kind":"textbox","slide":1,"id":"20","role":"tag text","text":"UPI QR","textPreview":"UPI QR","textChars":6,"textLines":1,"bbox":[1126,301,50,20]}
+{"kind":"shape","slide":1,"id":"21","role":"cover highlight 1","shapeType":"roundRect","bbox":[790,348,366,54]}
+{"kind":"textbox","slide":1,"id":"22","role":"cover highlight text","text":"Nearby discovery with OpenStreetMap and Overpass","textPreview":"Nearby discovery with OpenStreetMap and Overpass","textChars":48,"textLines":1,"bbox":[812,364,326,22]}
+{"kind":"shape","slide":1,"id":"23","role":"cover highlight 2","shapeType":"roundRect","bbox":[790,418,366,54]}
+{"kind":"textbox","slide":1,"id":"24","role":"cover highlight text","text":"UPI QR checkout and order tracking","textPreview":"UPI QR checkout and order tracking","textChars":34,"textLines":1,"bbox":[812,434,326,22]}
+{"kind":"shape","slide":1,"id":"25","role":"cover highlight 3","shapeType":"roundRect","bbox":[790,488,366,54]}
+{"kind":"textbox","slide":1,"id":"26","role":"cover highlight text","text":"AI-assisted README and code review workflow","textPreview":"AI-assisted README and code review workflow","textChars":43,"textLines":1,"bbox":[812,504,326,22]}
+{"kind":"textbox","slide":1,"id":"27","role":"caption","text":"FoodSprint • AI-assisted coding project • Flask, Jinja, SQLAlchemy, OpenStreetMap, and UPI QR workflow","textPreview":"FoodSprint • AI-assisted coding project • Flask, Jinja, SQLAlchemy, OpenStreetMap, and UPI QR workflow","textChars":102,"textLines":1,"bbox":[64,674,1060,22]}
+{"kind":"image","slide":2,"id":"2","role":"fallback art plate","path":"fallback-data-url","bbox":[0,0,1280,720]}
+{"kind":"shape","slide":2,"id":"3","role":"content contrast overlay","shapeType":"rect","bbox":[0,0,1280,720]}
+{"kind":"textbox","slide":2,"id":"4","role":"header","text":"PROJECT SCOPE","textPreview":"PROJECT SCOPE","textChars":13,"textLines":1,"bbox":[64,34,430,24]}
+{"kind":"textbox","slide":2,"id":"5","role":"header","text":"02 / 08","textPreview":"02 / 08","textChars":7,"textLines":1,"bbox":[1114,34,104,24]}
+{"kind":"shape","slide":2,"id":"6","role":"header rule","shapeType":"rect","bbox":[64,64,1152,2]}
+{"kind":"shape","slide":2,"id":"7","role":"header marker","shapeType":"ellipse","bbox":[57,57,16,16]}
+{"kind":"textbox","slide":2,"id":"8","role":"title","text":"Problem statement and project goal","textPreview":"Problem statement and project goal","textChars":34,"textLines":1,"bbox":[64,86,760,142]}
+{"kind":"textbox","slide":2,"id":"9","role":"subtitle","text":"FoodSprint combines restaurant discovery, ordering, payment, and operations management in one demo product.","textPreview":"FoodSprint combines restaurant discovery, ordering, payment, and operations management in one demo product.","textChars":107,"textLines":1,"bbox":[66,234,720,70]}
+{"kind":"shape","slide":2,"id":"10","role":"card panel: User need","shapeType":"roundRect","bbox":[84,376,355.3333333333333,236]}
+{"kind":"shape","slide":2,"id":"11","role":"card accent: User need","shapeType":"rect","bbox":[84,376,8,236]}
+{"kind":"shape","slide":2,"id":"12","role":"icon badge","shapeType":"ellipse","bbox":[106,400,54,54]}
+{"kind":"shape","slide":2,"id":"13","role":"icon glyph","shapeType":"rect","bbox":[122,429,6,12]}
+{"kind":"shape","slide":2,"id":"14","role":"icon glyph","shapeType":"rect","bbox":[131,421,6,20]}
+{"kind":"shape","slide":2,"id":"15","role":"icon glyph","shapeType":"rect","bbox":[140,414,6,27]}
+{"kind":"textbox","slide":2,"id":"16","role":"card label","text":"User need","textPreview":"User need","textChars":9,"textLines":1,"bbox":[172,398,247.33333333333331,28]}
+{"kind":"textbox","slide":2,"id":"17","role":"card body: User need","text":"Users need one place to\ndiscover restaurants near\nthem, browse menus, place\norders, and track status\nwithout switching tools.","textPreview":"Users need one place to | discover restaurants near | them, browse menus, place | orders, and track status | without switching tools.","textChars":125,"textLines":5,"bbox":[108,462,307.3333333333333,128]}
+{"kind":"shape","slide":2,"id":"18","role":"card panel: Project scope","shapeType":"roundRect","bbox":[463.3333333333333,376,355.3333333333333,236]}
+{"kind":"shape","slide":2,"id":"19","role":"card accent: Project scope","shapeType":"rect","bbox":[463.3333333333333,376,8,236]}
+{"kind":"shape","slide":2,"id":"20","role":"icon badge","shapeType":"ellipse","bbox":[485.3333333333333,400,54,54]}
+{"kind":"shape","slide":2,"id":"21","role":"icon glyph","shapeType":"ellipse","bbox":[498.3333333333333,418,10,10]}
+{"kind":"shape","slide":2,"id":"22","role":"icon glyph","shapeType":"ellipse","bbox":[516.3333333333333,427,10,10]}
+{"kind":"shape","slide":2,"id":"23","role":"icon glyph","shapeType":"rect","bbox":[507.3333333333333,425,19,3]}
+{"kind":"textbox","slide":2,"id":"24","role":"card label","text":"Project scope","textPreview":"Project scope","textChars":13,"textLines":1,"bbox":[551.3333333333333,398,247.33333333333331,28]}
+{"kind":"textbox","slide":2,"id":"25","role":"card body: Project scope","text":"The app focuses on Telangana\nrestaurant discovery, UPI QR\npayment, order tracking,\ndiet-aware suggestions, and\nrole-based dashboards.","textPreview":"The app focuses on Telangana | restaurant discovery, UPI QR | payment, order tracking, | diet-aware suggestions, and | role-based dashboards.","textChars":133,"textLines":5,"bbox":[487.3333333333333,462,307.3333333333333,128]}
+{"kind":"shape","slide":2,"id":"26","role":"card panel: Operations view","shapeType":"roundRect","bbox":[842.6666666666666,376,355.3333333333333,236]}
+{"kind":"shape","slide":2,"id":"27","role":"card accent: Operations view","shapeType":"rect","bbox":[842.6666666666666,376,8,236]}
+{"kind":"shape","slide":2,"id":"28","role":"icon badge","shapeType":"ellipse","bbox":[864.6666666666666,400,54,54]}
+{"kind":"shape","slide":2,"id":"29","role":"icon glyph","shapeType":"roundRect","bbox":[877.6666666666666,415,26,13]}
+{"kind":"shape","slide":2,"id":"30","role":"icon glyph","shapeType":"roundRect","bbox":[882.6666666666666,424,26,13]}
+{"kind":"shape","slide":2,"id":"31","role":"icon glyph","shapeType":"roundRect","bbox":[887.6666666666666,433,20,10]}
+{"kind":"textbox","slide":2,"id":"32","role":"card label","text":"Operations view","textPreview":"Operations view","textChars":15,"textLines":1,"bbox":[930.6666666666666,398,247.33333333333331,28]}
+{"kind":"textbox","slide":2,"id":"33","role":"card body: Operations view","text":"Admin and staff flows\nstrengthen the app by\ncovering payment setup,\nstaff access, and order\nfulfillment updates.","textPreview":"Admin and staff flows | strengthen the app by | covering payment setup, | staff access, and order | fulfillment updates.","textChars":112,"textLines":5,"bbox":[866.6666666666666,462,307.3333333333333,128]}
+{"kind":"textbox","slide":2,"id":"34","role":"caption","text":"FoodSprint • AI-assisted coding project • Flask, Jinja, SQLAlchemy, OpenStreetMap, and UPI QR workflow","textPreview":"FoodSprint • AI-assisted coding project • Flask, Jinja, SQLAlchemy, OpenStreetMap, and UPI QR workflow","textChars":102,"textLines":1,"bbox":[64,674,1060,22]}
+{"kind":"image","slide":3,"id":"2","role":"fallback art plate","path":"fallback-data-url","bbox":[0,0,1280,720]}
+{"kind":"shape","slide":3,"id":"3","role":"metrics contrast overlay","shapeType":"rect","bbox":[0,0,1280,720]}
+{"kind":"textbox","slide":3,"id":"4","role":"header","text":"FEATURE SNAPSHOT","textPreview":"FEATURE SNAPSHOT","textChars":16,"textLines":1,"bbox":[64,34,430,24]}
+{"kind":"textbox","slide":3,"id":"5","role":"header","text":"03 / 08","textPreview":"03 / 08","textChars":7,"textLines":1,"bbox":[1114,34,104,24]}
+{"kind":"shape","slide":3,"id":"6","role":"header rule","shapeType":"rect","bbox":[64,64,1152,2]}
+{"kind":"shape","slide":3,"id":"7","role":"header marker","shapeType":"ellipse","bbox":[57,57,16,16]}
+{"kind":"textbox","slide":3,"id":"8","role":"title","text":"Implemented feature summary","textPreview":"Implemented feature summary","textChars":27,"textLines":1,"bbox":[64,86,700,142]}
+{"kind":"textbox","slide":3,"id":"9","role":"subtitle","text":"The current codebase already supports a complete multi-role demo workflow.","textPreview":"The current codebase already supports a complete multi-role demo workflow.","textChars":74,"textLines":1,"bbox":[66,234,700,70]}
+{"kind":"shape","slide":3,"id":"10","role":"metric panel: Seeded restaurants","shapeType":"roundRect","bbox":[92,404,330,174]}
+{"kind":"shape","slide":3,"id":"11","role":"metric accent: Seeded restaurants","shapeType":"rect","bbox":[92,404,330,7]}
+{"kind":"textbox","slide":3,"id":"12","role":"metric value","text":"11","textPreview":"11","textChars":2,"textLines":1,"bbox":[114,428,286,54]}
+{"kind":"textbox","slide":3,"id":"13","role":"metric label","text":"Seeded restaurants","textPreview":"Seeded restaurants","textChars":18,"textLines":1,"bbox":[116,486,282,38]}
+{"kind":"textbox","slide":3,"id":"14","role":"metric note","text":"Across Hyderabad, Warangal, Karimnagar, Nizamabad, and Khammam","textPreview":"Across Hyderabad, Warangal, Karimnagar, Nizamabad, and Khammam","textChars":62,"textLines":1,"bbox":[116,536,282,22]}
+{"kind":"shape","slide":3,"id":"15","role":"metric panel: Menu items","shapeType":"roundRect","bbox":[462,404,330,174]}
+{"kind":"shape","slide":3,"id":"16","role":"metric accent: Menu items","shapeType":"rect","bbox":[462,404,330,7]}
+{"kind":"textbox","slide":3,"id":"17","role":"metric value","text":"110","textPreview":"110","textChars":3,"textLines":1,"bbox":[484,428,286,54]}
+{"kind":"textbox","slide":3,"id":"18","role":"metric label","text":"Menu items","textPreview":"Menu items","textChars":10,"textLines":1,"bbox":[486,486,282,38]}
+{"kind":"textbox","slide":3,"id":"19","role":"metric note","text":"Ten menu items per restaurant in the seeded catalog","textPreview":"Ten menu items per restaurant in the seeded catalog","textChars":51,"textLines":1,"bbox":[486,536,282,22]}
+{"kind":"shape","slide":3,"id":"20","role":"metric panel: Primary roles","shapeType":"roundRect","bbox":[832,404,330,174]}
+{"kind":"shape","slide":3,"id":"21","role":"metric accent: Primary roles","shapeType":"rect","bbox":[832,404,330,7]}
+{"kind":"textbox","slide":3,"id":"22","role":"metric value","text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[854,428,286,54]}
+{"kind":"textbox","slide":3,"id":"23","role":"metric label","text":"Primary roles","textPreview":"Primary roles","textChars":13,"textLines":1,"bbox":[856,486,282,38]}
+{"kind":"textbox","slide":3,"id":"24","role":"metric note","text":"Customer, admin, and staff flows are implemented","textPreview":"Customer, admin, and staff flows are implemented","textChars":48,"textLines":1,"bbox":[856,536,282,22]}
+{"kind":"textbox","slide":3,"id":"25","role":"caption","text":"FoodSprint • AI-assisted coding project • Flask, Jinja, SQLAlchemy, OpenStreetMap, and UPI QR workflow","textPreview":"FoodSprint • AI-assisted coding project • Flask, Jinja, SQLAlchemy, OpenStreetMap, and UPI QR workflow","textChars":102,"textLines":1,"bbox":[64,674,1060,22]}
+{"kind":"image","slide":4,"id":"2","role":"fallback art plate","path":"fallback-data-url","bbox":[0,0,1280,720]}
+{"kind":"shape","slide":4,"id":"3","role":"content contrast overlay","shapeType":"rect","bbox":[0,0,1280,720]}
+{"kind":"textbox","slide":4,"id":"4","role":"header","text":"SYSTEM DESIGN","textPreview":"SYSTEM DESIGN","textChars":13,"textLines":1,"bbox":[64,34,430,24]}
+{"kind":"textbox","slide":4,"id":"5","role":"header","text":"04 / 08","textPreview":"04 / 08","textChars":7,"textLines":1,"bbox":[1114,34,104,24]}
+{"kind":"shape","slide":4,"id":"6","role":"header rule","shapeType":"rect","bbox":[64,64,1152,2]}
+{"kind":"shape","slide":4,"id":"7","role":"header marker","shapeType":"ellipse","bbox":[57,57,16,16]}
+{"kind":"textbox","slide":4,"id":"8","role":"title","text":"Architecture and technology stack","textPreview":"Architecture and technology stack","textChars":33,"textLines":1,"bbox":[64,86,760,142]}
+{"kind":"textbox","slide":4,"id":"9","role":"subtitle","text":"FoodSprint uses a compact Flask architecture with clear service boundaries and practical integrations.","textPreview":"FoodSprint uses a compact Flask architecture with clear service boundaries and practical integrations.","textChars":102,"textLines":1,"bbox":[66,234,720,70]}
+{"kind":"shape","slide":4,"id":"10","role":"card panel: Frontend","shapeType":"roundRect","bbox":[84,376,355.3333333333333,236]}
+{"kind":"shape","slide":4,"id":"11","role":"card accent: Frontend","shapeType":"rect","bbox":[84,376,8,236]}
+{"kind":"shape","slide":4,"id":"12","role":"icon badge","shapeType":"ellipse","bbox":[106,400,54,54]}
+{"kind":"shape","slide":4,"id":"13","role":"icon glyph","shapeType":"rect","bbox":[122,429,6,12]}
+{"kind":"shape","slide":4,"id":"14","role":"icon glyph","shapeType":"rect","bbox":[131,421,6,20]}
+{"kind":"shape","slide":4,"id":"15","role":"icon glyph","shapeType":"rect","bbox":[140,414,6,27]}
+{"kind":"textbox","slide":4,"id":"16","role":"card label","text":"Frontend","textPreview":"Frontend","textChars":8,"textLines":1,"bbox":[172,398,247.33333333333331,28]}
+{"kind":"textbox","slide":4,"id":"17","role":"card body: Frontend","text":"Jinja templates, CSS,\nJavaScript, Leaflet maps,\nnearby filters, and\nmini-cart interactions\ncreate the user-facing\nexperience.","textPreview":"Jinja templates, CSS, | JavaScript, Leaflet maps, | nearby filters, and | mini-cart interactions | create the user-facing | experience.","textChars":125,"textLines":6,"bbox":[108,462,307.3333333333333,128]}
+{"kind":"shape","slide":4,"id":"18","role":"card panel: Backend","shapeType":"roundRect","bbox":[463.3333333333333,376,355.3333333333333,236]}
+{"kind":"shape","slide":4,"id":"19","role":"card accent: Backend","shapeType":"rect","bbox":[463.3333333333333,376,8,236]}
+{"kind":"shape","slide":4,"id":"20","role":"icon badge","shapeType":"ellipse","bbox":[485.3333333333333,400,54,54]}
+{"kind":"shape","slide":4,"id":"21","role":"icon glyph","shapeType":"ellipse","bbox":[498.3333333333333,418,10,10]}
+{"kind":"shape","slide":4,"id":"22","role":"icon glyph","shapeType":"ellipse","bbox":[516.3333333333333,427,10,10]}
+{"kind":"shape","slide":4,"id":"23","role":"icon glyph","shapeType":"rect","bbox":[507.3333333333333,425,19,3]}
+{"kind":"textbox","slide":4,"id":"24","role":"card label","text":"Backend","textPreview":"Backend","textChars":7,"textLines":1,"bbox":[551.3333333333333,398,247.33333333333331,28]}
+{"kind":"textbox","slide":4,"id":"25","role":"card body: Backend","text":"Flask routes, SQLAlchemy\nmodels, recommendation\nservices, payment helpers,\nand order status workflows\nhandle business logic.","textPreview":"Flask routes, SQLAlchemy | models, recommendation | services, payment helpers, | and order status workflows | handle business logic.","textChars":124,"textLines":5,"bbox":[487.3333333333333,462,307.3333333333333,128]}
+{"kind":"shape","slide":4,"id":"26","role":"card panel: Data and integrations","shapeType":"roundRect","bbox":[842.6666666666666,376,355.3333333333333,236]}
+{"kind":"shape","slide":4,"id":"27","role":"card accent: Data and integrations","shapeType":"rect","bbox":[842.6666666666666,376,8,236]}
+{"kind":"shape","slide":4,"id":"28","role":"icon badge","shapeType":"ellipse","bbox":[864.6666666666666,400,54,54]}
+{"kind":"shape","slide":4,"id":"29","role":"icon glyph","shapeType":"roundRect","bbox":[877.6666666666666,415,26,13]}
+{"kind":"shape","slide":4,"id":"30","role":"icon glyph","shapeType":"roundRect","bbox":[882.6666666666666,424,26,13]}
+{"kind":"shape","slide":4,"id":"31","role":"icon glyph","shapeType":"roundRect","bbox":[887.6666666666666,433,20,10]}
+{"kind":"textbox","slide":4,"id":"32","role":"card label","text":"Data and integrations","textPreview":"Data and integrations","textChars":21,"textLines":1,"bbox":[930.6666666666666,398,247.33333333333331,28]}
+{"kind":"textbox","slide":4,"id":"33","role":"card body: Data and integrations","text":"SQLite or PostgreSQL stores\nthe data layer, while\nOpenStreetMap, Overpass, and\nUPI QR generation support\ndiscovery and checkout.","textPreview":"SQLite or PostgreSQL stores | the data layer, while | OpenStreetMap, Overpass, and | UPI QR generation support | discovery and checkout.","textChars":128,"textLines":5,"bbox":[866.6666666666666,462,307.3333333333333,128]}
+{"kind":"textbox","slide":4,"id":"34","role":"caption","text":"FoodSprint • AI-assisted coding project • Flask, Jinja, SQLAlchemy, OpenStreetMap, and UPI QR workflow","textPreview":"FoodSprint • AI-assisted coding project • Flask, Jinja, SQLAlchemy, OpenStreetMap, and UPI QR workflow","textChars":102,"textLines":1,"bbox":[64,674,1060,22]}
+{"kind":"image","slide":5,"id":"2","role":"fallback art plate","path":"fallback-data-url","bbox":[0,0,1280,720]}
+{"kind":"shape","slide":5,"id":"3","role":"content contrast overlay","shapeType":"rect","bbox":[0,0,1280,720]}
+{"kind":"textbox","slide":5,"id":"4","role":"header","text":"AI WORKFLOW","textPreview":"AI WORKFLOW","textChars":11,"textLines":1,"bbox":[64,34,430,24]}
+{"kind":"textbox","slide":5,"id":"5","role":"header","text":"05 / 08","textPreview":"05 / 08","textChars":7,"textLines":1,"bbox":[1114,34,104,24]}
+{"kind":"shape","slide":5,"id":"6","role":"header rule","shapeType":"rect","bbox":[64,64,1152,2]}
+{"kind":"shape","slide":5,"id":"7","role":"header marker","shapeType":"ellipse","bbox":[57,57,16,16]}
+{"kind":"textbox","slide":5,"id":"8","role":"title","text":"How AI assisted the development process","textPreview":"How AI assisted the development process","textChars":39,"textLines":1,"bbox":[64,86,760,142]}
+{"kind":"textbox","slide":5,"id":"9","role":"subtitle","text":"The project benefits from prompt-driven iteration, code inspection, targeted edits, and fast documentation updates.","textPreview":"The project benefits from prompt-driven iteration, code inspection, targeted edits, and fast documentation updates.","textChars":115,"textLines":1,"bbox":[66,234,720,70]}
+{"kind":"shape","slide":5,"id":"10","role":"card panel: Prompt","shapeType":"roundRect","bbox":[84,376,355.3333333333333,236]}
+{"kind":"shape","slide":5,"id":"11","role":"card accent: Prompt","shapeType":"rect","bbox":[84,376,8,236]}
+{"kind":"shape","slide":5,"id":"12","role":"icon badge","shapeType":"ellipse","bbox":[106,400,54,54]}
+{"kind":"shape","slide":5,"id":"13","role":"icon glyph","shapeType":"rect","bbox":[122,429,6,12]}
+{"kind":"shape","slide":5,"id":"14","role":"icon glyph","shapeType":"rect","bbox":[131,421,6,20]}
+{"kind":"shape","slide":5,"id":"15","role":"icon glyph","shapeType":"rect","bbox":[140,414,6,27]}
+{"kind":"textbox","slide":5,"id":"16","role":"card label","text":"Prompt","textPreview":"Prompt","textChars":6,"textLines":1,"bbox":[172,398,247.33333333333331,28]}
+{"kind":"textbox","slide":5,"id":"17","role":"card body: Prompt","text":"Changes start from\nnatural-language\ninstructions such as\nupdating README content or\ninvestigating broken website\nimages.","textPreview":"Changes start from | natural-language | instructions such as | updating README content or | investigating broken website | images.","textChars":120,"textLines":6,"bbox":[108,462,307.3333333333333,128]}
+{"kind":"shape","slide":5,"id":"18","role":"card panel: Inspect and patch","shapeType":"roundRect","bbox":[463.3333333333333,376,355.3333333333333,236]}
+{"kind":"shape","slide":5,"id":"19","role":"card accent: Inspect and patch","shapeType":"rect","bbox":[463.3333333333333,376,8,236]}
+{"kind":"shape","slide":5,"id":"20","role":"icon badge","shapeType":"ellipse","bbox":[485.3333333333333,400,54,54]}
+{"kind":"shape","slide":5,"id":"21","role":"icon glyph","shapeType":"ellipse","bbox":[498.3333333333333,418,10,10]}
+{"kind":"shape","slide":5,"id":"22","role":"icon glyph","shapeType":"ellipse","bbox":[516.3333333333333,427,10,10]}
+{"kind":"shape","slide":5,"id":"23","role":"icon glyph","shapeType":"rect","bbox":[507.3333333333333,425,19,3]}
+{"kind":"textbox","slide":5,"id":"24","role":"card label","text":"Inspect and patch","textPreview":"Inspect and patch","textChars":17,"textLines":1,"bbox":[551.3333333333333,398,247.33333333333331,28]}
+{"kind":"textbox","slide":5,"id":"25","role":"card body: Inspect and patch","text":"AI reviews routes, services,\ntemplates, and config files\nbefore applying focused\nimprovements inside the\nrepository.","textPreview":"AI reviews routes, services, | templates, and config files | before applying focused | improvements inside the | repository.","textChars":116,"textLines":5,"bbox":[487.3333333333333,462,307.3333333333333,128]}
+{"kind":"shape","slide":5,"id":"26","role":"card panel: Verify and present","shapeType":"roundRect","bbox":[842.6666666666666,376,355.3333333333333,236]}
+{"kind":"shape","slide":5,"id":"27","role":"card accent: Verify and present","shapeType":"rect","bbox":[842.6666666666666,376,8,236]}
+{"kind":"shape","slide":5,"id":"28","role":"icon badge","shapeType":"ellipse","bbox":[864.6666666666666,400,54,54]}
+{"kind":"shape","slide":5,"id":"29","role":"icon glyph","shapeType":"roundRect","bbox":[877.6666666666666,415,26,13]}
+{"kind":"shape","slide":5,"id":"30","role":"icon glyph","shapeType":"roundRect","bbox":[882.6666666666666,424,26,13]}
+{"kind":"shape","slide":5,"id":"31","role":"icon glyph","shapeType":"roundRect","bbox":[887.6666666666666,433,20,10]}
+{"kind":"textbox","slide":5,"id":"32","role":"card label","text":"Verify and present","textPreview":"Verify and present","textChars":18,"textLines":1,"bbox":[930.6666666666666,398,247.33333333333331,28]}
+{"kind":"textbox","slide":5,"id":"33","role":"card body: Verify and present","text":"The result is checked,\nsummarized for GitHub or\ndemos, and turned into\nsupporting material such as\nthis presentation.","textPreview":"The result is checked, | summarized for GitHub or | demos, and turned into | supporting material such as | this presentation.","textChars":117,"textLines":5,"bbox":[866.6666666666666,462,307.3333333333333,128]}
+{"kind":"textbox","slide":5,"id":"34","role":"caption","text":"FoodSprint • AI-assisted coding project • Flask, Jinja, SQLAlchemy, OpenStreetMap, and UPI QR workflow","textPreview":"FoodSprint • AI-assisted coding project • Flask, Jinja, SQLAlchemy, OpenStreetMap, and UPI QR workflow","textChars":102,"textLines":1,"bbox":[64,674,1060,22]}
+{"kind":"image","slide":6,"id":"2","role":"fallback art plate","path":"fallback-data-url","bbox":[0,0,1280,720]}
+{"kind":"shape","slide":6,"id":"3","role":"code slide base","shapeType":"rect","bbox":[0,0,1280,720]}
+{"kind":"textbox","slide":6,"id":"4","role":"header","text":"PROMPT TO CODE","textPreview":"PROMPT TO CODE","textChars":14,"textLines":1,"bbox":[64,34,430,24]}
+{"kind":"textbox","slide":6,"id":"5","role":"header","text":"06 / 08","textPreview":"06 / 08","textChars":7,"textLines":1,"bbox":[1114,34,104,24]}
+{"kind":"shape","slide":6,"id":"6","role":"header rule","shapeType":"rect","bbox":[64,64,1152,2]}
+{"kind":"shape","slide":6,"id":"7","role":"header marker","shapeType":"ellipse","bbox":[57,57,16,16]}
+{"kind":"textbox","slide":6,"id":"8","role":"title","text":"Example 1: README documentation update","textPreview":"Example 1: README documentation update","textChars":38,"textLines":1,"bbox":[64,86,494,142]}
+{"kind":"textbox","slide":6,"id":"9","role":"subtitle","text":"A simple prompt was translated into a repo-aware documentation change that matches the current feature set.","textPreview":"A simple prompt was translated into a repo-aware documentation change that matches the current feature set.","textChars":107,"textLines":1,"bbox":[66,234,494,70]}
+{"kind":"shape","slide":6,"id":"10","role":"prompt panel","shapeType":"roundRect","bbox":[64,312,486,94]}
+{"kind":"textbox","slide":6,"id":"11","role":"prompt label","text":"Prompt used","textPreview":"Prompt used","textChars":11,"textLines":1,"bbox":[90,334,150,22]}
+{"kind":"textbox","slide":6,"id":"12","role":"prompt text","text":"I want to update README in GitHub about current features","textPreview":"I want to update README in GitHub about current features","textChars":56,"textLines":1,"bbox":[90,364,430,24]}
+{"kind":"shape","slide":6,"id":"13","role":"takeaways panel","shapeType":"roundRect","bbox":[64,434,486,196]}
+{"kind":"textbox","slide":6,"id":"14","role":"takeaways label","text":"What this shows","textPreview":"What this shows","textChars":15,"textLines":1,"bbox":[90,458,180,22]}
+{"kind":"textbox","slide":6,"id":"15","role":"takeaways text","text":"• AI inspected the existing README before changing it.\n• Outdated text was replaced with the features actually present in the codebase.\n• The final README became clearer for GitHub visitors and deployment reviewers.","textPreview":"• AI inspected the existing README before changing it. | • Outdated text was replaced with the features actually present in the codebase. | • The final README became clearer for Gi","textChars":215,"textLines":3,"bbox":[90,492,424,112]}
+{"kind":"shape","slide":6,"id":"16","role":"code image frame","shapeType":"roundRect","bbox":[584,118,632,512]}
+{"kind":"image","slide":6,"id":"17","role":"code example image","path":"C:\\Users\\spand\\OneDrive\\Documents\\New project\\tmp\\slides\\foodsprint-ai-assisted-project\\assets\\readme_prompt.png","bbox":[608,142,584,464]}
+{"kind":"textbox","slide":6,"id":"18","role":"caption","text":"FoodSprint • AI-assisted coding project • Flask, Jinja, SQLAlchemy, OpenStreetMap, and UPI QR workflow","textPreview":"FoodSprint • AI-assisted coding project • Flask, Jinja, SQLAlchemy, OpenStreetMap, and UPI QR workflow","textChars":102,"textLines":1,"bbox":[64,674,1060,22]}
+{"kind":"image","slide":7,"id":"2","role":"fallback art plate","path":"fallback-data-url","bbox":[0,0,1280,720]}
+{"kind":"shape","slide":7,"id":"3","role":"code slide base","shapeType":"rect","bbox":[0,0,1280,720]}
+{"kind":"textbox","slide":7,"id":"4","role":"header","text":"PROMPT TO CODE","textPreview":"PROMPT TO CODE","textChars":14,"textLines":1,"bbox":[64,34,430,24]}
+{"kind":"textbox","slide":7,"id":"5","role":"header","text":"07 / 08","textPreview":"07 / 08","textChars":7,"textLines":1,"bbox":[1114,34,104,24]}
+{"kind":"shape","slide":7,"id":"6","role":"header rule","shapeType":"rect","bbox":[64,64,1152,2]}
+{"kind":"shape","slide":7,"id":"7","role":"header marker","shapeType":"ellipse","bbox":[57,57,16,16]}
+{"kind":"textbox","slide":7,"id":"8","role":"title","text":"Example 2: image quality review","textPreview":"Example 2: image quality review","textChars":31,"textLines":1,"bbox":[64,86,494,142]}
+{"kind":"textbox","slide":7,"id":"9","role":"subtitle","text":"A visual issue on the website was traced back to image URL mappings in the service layer.","textPreview":"A visual issue on the website was traced back to image URL mappings in the service layer.","textChars":89,"textLines":1,"bbox":[66,234,494,70]}
+{"kind":"shape","slide":7,"id":"10","role":"prompt panel","shapeType":"roundRect","bbox":[64,312,486,94]}
+{"kind":"textbox","slide":7,"id":"11","role":"prompt label","text":"Prompt used","textPreview":"Prompt used","textChars":11,"textLines":1,"bbox":[90,334,150,22]}
+{"kind":"textbox","slide":7,"id":"12","role":"prompt text","text":"Some pictures are not proper in the website","textPreview":"Some pictures are not proper in the website","textChars":43,"textLines":1,"bbox":[90,364,430,24]}
+{"kind":"shape","slide":7,"id":"13","role":"takeaways panel","shapeType":"roundRect","bbox":[64,434,486,196]}
+{"kind":"textbox","slide":7,"id":"14","role":"takeaways label","text":"What this shows","textPreview":"What this shows","textChars":15,"textLines":1,"bbox":[90,458,180,22]}
+{"kind":"textbox","slide":7,"id":"15","role":"takeaways text","text":"• AI can quickly inspect where image sources are assigned in the codebase.\n• Broken or weak external image links become easier to identify and replace.\n• This improves website quality while keeping the fix targeted and maintainable.","textPreview":"• AI can quickly inspect where image sources are assigned in the codebase. | • Broken or weak external image links become easier to identify and replace. | • This improves website ","textChars":232,"textLines":3,"bbox":[90,492,424,112]}
+{"kind":"shape","slide":7,"id":"16","role":"code image frame","shapeType":"roundRect","bbox":[584,118,632,512]}
+{"kind":"image","slide":7,"id":"17","role":"code example image","path":"C:\\Users\\spand\\OneDrive\\Documents\\New project\\tmp\\slides\\foodsprint-ai-assisted-project\\assets\\image_prompt.png","bbox":[608,142,584,464]}
+{"kind":"textbox","slide":7,"id":"18","role":"caption","text":"FoodSprint • AI-assisted coding project • Flask, Jinja, SQLAlchemy, OpenStreetMap, and UPI QR workflow","textPreview":"FoodSprint • AI-assisted coding project • Flask, Jinja, SQLAlchemy, OpenStreetMap, and UPI QR workflow","textChars":102,"textLines":1,"bbox":[64,674,1060,22]}
+{"kind":"image","slide":8,"id":"2","role":"fallback art plate","path":"fallback-data-url","bbox":[0,0,1280,720]}
+{"kind":"shape","slide":8,"id":"3","role":"commands base","shapeType":"rect","bbox":[0,0,1280,720]}
+{"kind":"textbox","slide":8,"id":"4","role":"header","text":"NEXT STEPS","textPreview":"NEXT STEPS","textChars":10,"textLines":1,"bbox":[64,34,430,24]}
+{"kind":"textbox","slide":8,"id":"5","role":"header","text":"08 / 08","textPreview":"08 / 08","textChars":7,"textLines":1,"bbox":[1114,34,104,24]}
+{"kind":"shape","slide":8,"id":"6","role":"header rule","shapeType":"rect","bbox":[64,64,1152,2]}
+{"kind":"shape","slide":8,"id":"7","role":"header marker","shapeType":"ellipse","bbox":[57,57,16,16]}
+{"kind":"textbox","slide":8,"id":"8","role":"title","text":"Commands you can run after this","textPreview":"Commands you can run after this","textChars":31,"textLines":1,"bbox":[64,86,720,142]}
+{"kind":"textbox","slide":8,"id":"9","role":"subtitle","text":"These commands help you run the app, save your changes, and push the project to GitHub.","textPreview":"These commands help you run the app, save your changes, and push the project to GitHub.","textChars":87,"textLines":1,"bbox":[66,234,720,70]}
+{"kind":"shape","slide":8,"id":"10","role":"terminal panel","shapeType":"roundRect","bbox":[64,320,714,236]}
+{"kind":"textbox","slide":8,"id":"11","role":"terminal commands","text":"# Run locally\npip install -r requirements.txt\npython run.py\n# Save current work\ngit add .\ngit commit -m \"Update FoodSprint project files\"\n# Push to GitHub\ngit push\n# Optional Docker run\ndocker compose up --build","textPreview":"# Run locally | pip install -r requirements.txt | python run.py | # Save current work | git add . | git commit -m \"Update FoodSprint project files\" | # Push to GitHub | git push | ","textChars":211,"textLines":10,"bbox":[94,350,652,176]}
+{"kind":"shape","slide":8,"id":"12","role":"command note 1","shapeType":"roundRect","bbox":[820,320,376,96]}
+{"kind":"shape","slide":8,"id":"13","role":"command note accent 1","shapeType":"rect","bbox":[820,320,8,96]}
+{"kind":"textbox","slide":8,"id":"14","role":"command note title","text":"Local run","textPreview":"Local run","textChars":9,"textLines":1,"bbox":[844,334,312,22]}
+{"kind":"textbox","slide":8,"id":"15","role":"command note body","text":"Use pip plus python run.py when you want to demo the app quickly from the project folder.","textPreview":"Use pip plus python run.py when you want to demo the app quickly from the project folder.","textChars":89,"textLines":1,"bbox":[844,360,322,30]}
+{"kind":"shape","slide":8,"id":"16","role":"command note 2","shapeType":"roundRect","bbox":[820,430,376,96]}
+{"kind":"shape","slide":8,"id":"17","role":"command note accent 2","shapeType":"rect","bbox":[820,430,8,96]}
+{"kind":"textbox","slide":8,"id":"18","role":"command note title","text":"GitHub push","textPreview":"GitHub push","textChars":11,"textLines":1,"bbox":[844,444,312,22]}
+{"kind":"textbox","slide":8,"id":"19","role":"command note body","text":"Commit your final changes first, then push the branch to update the repository.","textPreview":"Commit your final changes first, then push the branch to update the repository.","textChars":79,"textLines":1,"bbox":[844,470,322,30]}
+{"kind":"shape","slide":8,"id":"20","role":"command note 3","shapeType":"roundRect","bbox":[820,540,376,96]}
+{"kind":"shape","slide":8,"id":"21","role":"command note accent 3","shapeType":"rect","bbox":[820,540,8,96]}
+{"kind":"textbox","slide":8,"id":"22","role":"command note title","text":"Deployment","textPreview":"Deployment","textChars":10,"textLines":1,"bbox":[844,554,312,22]}
+{"kind":"textbox","slide":8,"id":"23","role":"command note body","text":"Deploy only when code or configuration changed. README or PPT-only updates do not require a full redeploy.","textPreview":"Deploy only when code or configuration changed. README or PPT-only updates do not require a full redeploy.","textChars":106,"textLines":1,"bbox":[844,580,322,30]}
+{"kind":"textbox","slide":8,"id":"24","role":"caption","text":"FoodSprint • AI-assisted coding project • Flask, Jinja, SQLAlchemy, OpenStreetMap, and UPI QR workflow","textPreview":"FoodSprint • AI-assisted coding project • Flask, Jinja, SQLAlchemy, OpenStreetMap, and UPI QR workflow","textChars":102,"textLines":1,"bbox":[64,674,1060,22]}

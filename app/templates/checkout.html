@@ -5,9 +5,9 @@
     <div class="section-heading">
         <div>
             <p class="eyebrow">Checkout</p>
-            <h1>Pay using UPI QR</h1>
+            <h1>Flexible checkout with delivery, pickup, loyalty, and split pay</h1>
         </div>
-        <p class="section-copy">This keeps the demo simple and reliable: generate a QR, click “I have paid”, and continue to order tracking.</p>
+        <p class="section-copy">Saved addresses, delivery instructions, scheduled orders, promo codes, and group split are all part of this flow.</p>
     </div>
     <div class="checkout-grid">
         <div class="summary-card">
@@ -17,28 +17,89 @@
                     <span>{{ item.menu_item.name }} x{{ item.quantity }}</span>
                     <strong>Rs. {{ "%.0f"|format(item.subtotal) }}</strong>
                 </div>
+                <p class="review-item">{{ item.customization_summary }}</p>
             {% endfor %}
             <div class="summary-row total-row">
-                <span>Total payable</span>
-                <strong>Rs. {{ "%.0f"|format(cart_data.total) }}</strong>
+                <span>Macros</span>
+                <strong>{{ cart_data.protein_total }}P / {{ cart_data.carbs_total }}C / {{ cart_data.fat_total }}F</strong>
             </div>
         </div>
-        <div class="payment-card">
+
+        <form class="payment-card" method="post" action="{{ url_for('main.payment_upi') }}">
             <div class="payment-option-card">
-                <h3>UPI QR payment</h3>
-                <p>{% if admin_upi_id %}Admin UPI ID: {{ admin_upi_id }}{% else %}Admin has not configured a UPI ID yet.{% endif %}</p>
-                <form method="post" action="{{ url_for('main.payment_upi') }}">
-                    <button class="btn btn-primary summary-btn" type="submit" {% if not admin_upi_id %}disabled{% endif %}>Generate UPI QR</button>
-                </form>
+                <h3>Delivery mode</h3>
+                <label>Choose service
+                    <select name="fulfillment_mode">
+                        <option value="delivery" {% if selected_mode == 'delivery' %}selected{% endif %}>Delivery</option>
+                        <option value="pickup" {% if selected_mode == 'pickup' %}selected{% endif %}>Pickup</option>
+                    </select>
+                </label>
+                <label>Scheduled time
+                    <input type="datetime-local" name="scheduled_for" value="{{ default_schedule }}">
+                </label>
+                <label>Delivery instructions
+                    <input type="text" name="delivery_notes" placeholder="Leave at gate, call on arrival">
+                </label>
+                <label>Special instructions
+                    <input type="text" name="special_instructions" placeholder="Less oil, ring the bell once">
+                </label>
             </div>
+
             <div class="payment-option-card">
-                <h3>What happens next</h3>
-                <p>1. QR is generated</p>
-                <p>2. User clicks “I have paid”</p>
-                <p>3. Payment is marked successful with a demo transaction ID</p>
-                <p>4. Order tracking starts immediately</p>
+                <h3>Saved addresses</h3>
+                {% if addresses %}
+                    <label>Choose address
+                        <select name="address_id">
+                            {% for address in addresses %}
+                                <option value="{{ address.id }}" {% if default_address and address.id == default_address.id %}selected{% endif %}>
+                                    {{ address.label }} • {{ address.address_line }} • {{ address.city }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                {% else %}
+                    <p>No saved address yet. Add one in your account first.</p>
+                {% endif %}
             </div>
-        </div>
+
+            <div class="payment-option-card">
+                <h3>Rewards and offers</h3>
+                <label>Promo code
+                    <input type="text" name="promo_code" value="{{ request.args.get('promo_code', '') }}" placeholder="WELCOME100">
+                </label>
+                <div class="nutrition-row">
+                    {% for promo in promo_codes %}
+                        <span class="tag">{{ promo.code }}</span>
+                    {% endfor %}
+                </div>
+                <label>Use loyalty points
+                    <input type="number" name="loyalty_points" min="0" max="{{ loyalty_total }}" value="{{ request.args.get('loyalty_points', 0) }}">
+                </label>
+                <p>You have <strong>{{ loyalty_total }} points</strong> available.</p>
+            </div>
+
+            <div class="payment-option-card">
+                <h3>Group order and split UPI</h3>
+                <label>Number of contributors
+                    <input type="number" name="split_count" min="1" value="1">
+                </label>
+                <p>FoodSprint will show a per-person share on the next screen for office lunches and friend orders.</p>
+            </div>
+
+            <div class="payment-option-card">
+                <h3>Price preview</h3>
+                <div class="summary-row"><span>Items subtotal</span><strong>Rs. {{ "%.0f"|format(pricing.subtotal) }}</strong></div>
+                <div class="summary-row"><span>Delivery fee</span><strong>Rs. {{ "%.0f"|format(pricing.delivery_fee) }}</strong></div>
+                <div class="summary-row"><span>Discount</span><strong>- Rs. {{ "%.0f"|format(pricing.discount_amount) }}</strong></div>
+                <div class="summary-row"><span>Loyalty used</span><strong>- Rs. {{ "%.0f"|format(pricing.loyalty_to_use) }}</strong></div>
+                <div class="summary-row total-row"><span>Total payable</span><strong>Rs. {{ "%.0f"|format(pricing.total) }}</strong></div>
+                <p>Earn <strong>{{ pricing.earned_points }} points</strong> after a successful payment.</p>
+                {% if pricing.promo_error %}
+                    <p class="flash flash-danger">{{ pricing.promo_error }}</p>
+                {% endif %}
+                <button class="btn btn-primary summary-btn" type="submit" {% if not admin_upi_id %}disabled{% endif %}>Generate UPI QR</button>
+            </div>
+        </form>
     </div>
 </section>
 {% endblock %}

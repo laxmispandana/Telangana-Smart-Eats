@@ -1,5 +1,18 @@
+import json
+
 from ..extensions import db
-from ..models import Admin, MenuItem, Restaurant, Staff
+from ..models import (
+    Address,
+    Admin,
+    MenuAvailability,
+    MenuItem,
+    MenuNutrition,
+    MenuOption,
+    PromoCode,
+    Restaurant,
+    RestaurantProfile,
+    Staff,
+)
 from .image_utils import themed_food_image, themed_restaurant_image
 
 
@@ -153,6 +166,13 @@ BASE_MENU = [
 ]
 
 
+PROMO_CODES = [
+    ("WELCOME100", "First order flat Rs. 100 off", "flat", 100, 299, True, False),
+    ("FIT50", "Healthy-order flat Rs. 50 off", "flat", 50, 199, False, False),
+    ("FREEDEL", "Free delivery on this order", "flat", 0, 149, False, True),
+]
+
+
 def ensure_single_admin():
     if Admin.query.count() == 0:
         admin = Admin(
@@ -177,10 +197,7 @@ def ensure_demo_staff():
         db.session.commit()
 
 
-def seed_data():
-    ensure_single_admin()
-    ensure_demo_staff()
-
+def seed_restaurants_and_menu():
     if Restaurant.query.count() > 0:
         return
 
@@ -219,3 +236,117 @@ def seed_data():
             )
 
     db.session.commit()
+
+
+def ensure_restaurant_profiles():
+    restaurants = Restaurant.query.order_by(Restaurant.id.asc()).all()
+    for index, restaurant in enumerate(restaurants, start=1):
+        if restaurant.profile:
+            continue
+        profile = RestaurantProfile(
+            restaurant_id=restaurant.id,
+            delivery_fee=0 if restaurant.rating >= 4.7 else 25 + (index % 3) * 10,
+            min_order_amount=149 + (index % 3) * 50,
+            opening_time="08:00" if "Tiffin" in restaurant.name or "Veggie" in restaurant.name else "10:00",
+            closing_time="23:30" if restaurant.rating >= 4.6 else "22:30",
+            pickup_enabled=True,
+            offers_text="Free dessert on combos" if restaurant.rating >= 4.7 else "20% off on selected combos",
+            support_phone=f"+91-90000{restaurant.id:05d}",
+        )
+        db.session.add(profile)
+    db.session.commit()
+
+
+def ensure_menu_metadata():
+    menu_items = MenuItem.query.order_by(MenuItem.id.asc()).all()
+    for item in menu_items:
+        if not item.nutrition:
+            diet_labels = []
+            allergens = []
+            if item.food_type == "veg":
+                diet_labels.append("vegetarian")
+            if item.category in {"diet", "protein"}:
+                diet_labels.append("high-protein")
+            if item.calories and item.calories <= 320:
+                diet_labels.append("low-carb")
+            if item.calories and item.calories <= 260:
+                diet_labels.append("diabetic-friendly")
+            if "dosa" in item.name.lower() or "idli" in item.name.lower():
+                allergens.append("gluten")
+            if "paneer" in item.name.lower():
+                allergens.append("dairy")
+            if "fish" in item.name.lower():
+                allergens.append("seafood")
+            db.session.add(
+                MenuNutrition(
+                    menu_item_id=item.id,
+                    protein_g=max(8, int((item.calories or 240) / 22)),
+                    carbs_g=max(12, int((item.calories or 240) / 12)),
+                    fat_g=max(4, int((item.calories or 240) / 32)),
+                    allergens=", ".join(allergens) or "none",
+                    diet_labels=", ".join(sorted(set(diet_labels))) or "balanced",
+                )
+            )
+
+        if not item.availability:
+            db.session.add(
+                MenuAvailability(
+                    menu_item_id=item.id,
+                    is_available=True,
+                    stock_count=30 if item.healthy_badge else 18,
+                )
+            )
+
+        if not item.options:
+            addon_choices = ["Extra Dip", "Extra Protein", "Extra Veggies"]
+            combo_choices = ["Regular", "Meal Combo (+40)", "Family Combo (+120)"]
+            addon_prices = {"Extra Dip": 20, "Extra Protein": 60, "Extra Veggies": 30}
+            combo_prices = {"Regular": 0, "Meal Combo (+40)": 40, "Family Combo (+120)": 120}
+            db.session.add(
+                MenuOption(
+                    menu_item_id=item.id,
+                    title="Add-ons",
+                    option_type="addon",
+                    choices="|".join(addon_choices),
+                    price_delta_map=json.dumps(addon_prices),
+                )
+            )
+            db.session.add(
+                MenuOption(
+                    menu_item_id=item.id,
+                    title="Combo upgrade",
+                    option_type="combo",
+                    choices="|".join(combo_choices),
+                    price_delta_map=json.dumps(combo_prices),
+                )
+            )
+    db.session.commit()
+
+
+def ensure_promo_codes():
+    for code, description, discount_type, discount_value, minimum, first_order_only, free_delivery in PROMO_CODES:
+        existing = PromoCode.query.filter_by(code=code).first()
+        if existing:
+            continue
+        db.session.add(
+            PromoCode(
+                code=code,
+                description=description,
+                discount_type=discount_type,
+                discount_value=discount_value,
+                min_order_amount=minimum,
+                active=True,
+                first_order_only=first_order_only,
+                free_delivery=free_delivery,
+            )
+        )
+    db.session.commit()
+
+
+def seed_data():
+    ensure_single_admin()
+    ensure_demo_staff()
+    seed_restaurants_and_menu()
+    ensure_restaurant_profiles()
+    ensure_menu_metadata()
+    ensure_promo_codes()

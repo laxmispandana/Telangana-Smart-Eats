@@ -24,10 +24,12 @@
         </div>
         <nav class="nav-links">
             <a href="{{ url_for('main.index') }}">Explore</a>
-            <a href="{{ url_for('main.diet') }}">Diet AI</a>
+            <a href="{{ url_for('main.diet') }}">Nutrition</a>
             {% if nav_user %}
+                <a href="{{ url_for('main.account') }}">Account</a>
                 <a href="{{ url_for('main.cart') }}" class="cart-link">Cart <span class="cart-badge" id="cart-badge">{{ cart_meta.count }}</span></a>
                 <span class="user-chip">{{ nav_user.name }}</span>
+                <span class="tag">{{ loyalty_points_balance }} pts</span>
                 <a href="{{ url_for('main.logout') }}">Logout</a>
             {% else %}
                 <a href="{{ url_for('main.login') }}">Login</a>
@@ -79,7 +81,8 @@
                             <img src="{{ entry.menu_item.image_url }}" alt="{{ entry.menu_item.name }}">
                             <div>
                                 <strong>{{ entry.menu_item.name }}</strong>
-                                <p>{{ entry.quantity }} x Rs. {{ "%.0f"|format(entry.menu_item.price) }}</p>
+                                <p>{{ entry.quantity }} x Rs. {{ "%.0f"|format(entry.unit_price) }}</p>
+                                <small>{{ entry.customization_summary }}</small>
                             </div>
                         </div>
                     {% endfor %}

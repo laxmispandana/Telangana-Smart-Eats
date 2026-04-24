@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% block title %}My Account{% endblock %}
+{% block content %}
+<section class="section">
+    <div class="section-heading">
+        <div>
+            <p class="eyebrow">Account</p>
+            <h1>{{ user.name }}</h1>
+        </div>
+        <p class="section-copy">Manage addresses, favorites, order history, referral rewards, loyalty points, and support threads from one place.</p>
+    </div>
+    <div class="hero-stats admin-stats">
+        <div><strong>{{ loyalty_total }}</strong><span>Loyalty points</span></div>
+        <div><strong>{{ orders|length }}</strong><span>Orders</span></div>
+        <div><strong>{{ favorites|length }}</strong><span>Favorites</span></div>
+        <div><strong>{{ tickets|length }}</strong><span>Support tickets</span></div>
+    </div>
+</section>
+
+<section class="section admin-grid">
+    <div class="admin-card">
+        <p class="eyebrow">Referral rewards</p>
+        <h2>Your invite code</h2>
+        <div class="summary-row">
+            <span>Referral code</span>
+            <strong>{{ referral.referral_code }}</strong>
+        </div>
+        <p>Share this code with friends. When they complete their first paid order, both of you receive reward points.</p>
+    </div>
+
+    <div class="admin-card">
+        <p class="eyebrow">Addresses</p>
+        <h2>Saved addresses</h2>
+        <div class="admin-list">
+            {% for address in addresses %}
+                <div class="review-card">
+                    <div class="review-top">
+                        <strong>{{ address.label }}</strong>
+                        <span>{% if address.is_default %}Default{% else %}Saved{% endif %}</span>
+                    </div>
+                    <p>{{ address.address_line }}, {{ address.city }}</p>
+                    <p>{{ address.recipient_name }} • {{ address.phone }}</p>
+                    <form method="post" action="{{ url_for('main.set_default_address', address_id=address.id) }}">
+                        <button class="btn btn-mini" type="submit">Make default</button>
+                    </form>
+                </div>
+            {% else %}
+                <p>No saved addresses yet.</p>
+            {% endfor %}
+        </div>
+        <form method="post" action="{{ url_for('main.add_address') }}">
+            <label>Label<input type="text" name="label" placeholder="Home, Work, Hostel" required></label>
+            <label>Recipient name<input type="text" name="recipient_name" value="{{ user.name }}" required></label>
+            <label>Phone<input type="tel" name="phone" value="{{ user.phone }}" required></label>
+            <label>Address line<input type="text" name="address_line" required></label>
+            <label>Landmark<input type="text" name="landmark"></label>
+            <label>City<input type="text" name="city" required></label>
+            <label>Delivery notes<input type="text" name="delivery_notes"></label>
+            <label class="toggle"><input type="checkbox" name="is_default"> Set as default</label>
+            <button class="btn btn-primary" type="submit">Save address</button>
+        </form>
+    </div>
+</section>
+
+<section class="section admin-grid">
+    <div class="admin-card">
+        <p class="eyebrow">Favorites</p>
+        <h2>Saved restaurants</h2>
+        <div class="admin-list">
+            {% for restaurant in favorites %}
+                <div class="order-admin-card">
+                    <div class="summary-row">
+                        <span>{{ restaurant.name }}</span>
+                        <strong>{{ restaurant.city }}</strong>
+                    </div>
+                    <p>{{ restaurant.profile.offers_text if restaurant.profile else restaurant.cuisine }}</p>
+                    <div class="menu-footer">
+                        <a href="{{ url_for('main.restaurant_detail', restaurant_id=restaurant.id) }}" class="btn btn-mini">View menu</a>
+                        <form method="post" action="{{ url_for('main.toggle_favorite', restaurant_id=restaurant.id) }}">
+                            <button class="btn btn-mini" type="submit">Remove</button>
+                        </form>
+                    </div>
+                </div>
+            {% else %}
+                <p>No favorites yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="admin-card">
+        <p class="eyebrow">Loyalty</p>
+        <h2>Point history</h2>
+        <div class="admin-list">
+            {% for entry in loyalty_entries %}
+                <div class="summary-row">
+                    <span>{{ entry.reason }}</span>
+                    <strong>{% if entry.points > 0 %}+{% endif %}{{ entry.points }} pts</strong>
+                </div>
+            {% else %}
+                <p>No loyalty activity yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="section admin-grid">
+    <div class="admin-card">
+        <p class="eyebrow">Order history</p>
+        <h2>Reorder in one tap</h2>
+        <div class="admin-list">
+            {% for order in orders %}
+                <div class="order-admin-card">
+                    <div class="summary-row">
+                        <span>Order #{{ order.id }}</span>
+                        <strong>{{ order.status.replace('_', ' ') }}</strong>
+                    </div>
+                    <p class="order-items">{{ order.order_items|map(attribute='menu_item.name')|join(', ') }}</p>
+                    <div class="nutrition-row">
+                        <span class="tag">{{ order.payment_status }}</span>
+                        <span class="tag">{{ order.fulfillment.fulfillment_mode|title if order.fulfillment else 'Delivery' }}</span>
+                    </div>
+                    <div class="menu-footer">
+                        <a href="{{ url_for('main.order_detail', order_id=order.id) }}" class="btn btn-mini">Track</a>
+                        <form method="post" action="{{ url_for('main.reorder', order_id=order.id) }}">
+                            <button class="btn btn-mini" type="submit">Reorder</button>
+                        </form>
+                    </div>
+                </div>
+            {% else %}
+                <p>No orders yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="admin-card">
+        <p class="eyebrow">Support and alerts</p>
+        <h2>Tickets and notifications</h2>
+        <div class="admin-list">
+            {% for ticket in tickets %}
+                <div class="review-card">
+                    <div class="review-top">
+                        <strong>#{{ ticket.id }} • {{ ticket.subject }}</strong>
+                        <span>{{ ticket.status }}</span>
+                    </div>
+                    <p>{{ ticket.message }}</p>
+                    {% for message in ticket.messages %}
+                        <p class="review-item"><strong>{{ message.sender_role|title }}:</strong> {{ message.message }}</p>
+                    {% endfor %}
+                    <form method="post" action="{{ url_for('main.reply_support_ticket', ticket_id=ticket.id) }}">
+                        <label>Reply
+                            <input type="text" name="message" placeholder="Reply to support">
+                        </label>
+                        <button class="btn btn-mini" type="submit">Send</button>
+                    </form>
+                </div>
+            {% else %}
+                <p>No support tickets yet.</p>
+            {% endfor %}
+        </div>
+        <div class="admin-list">
+            {% for note in notifications %}
+                <div class="summary-row">
+                    <span>{{ note.title }} • {{ note.channel|upper }}</span>
+                    <strong>{{ note.created_at.strftime('%d %b %I:%M %p') }}</strong>
+                </div>
+            {% else %}
+                <p>No alerts yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}

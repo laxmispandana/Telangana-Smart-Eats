@@ -160,7 +160,8 @@ p { line-height: 1.55; }
 .menu-footer,
 .summary-row,
 .review-top,
-.order-restaurant-line {
+.order-restaurant-line,
+.tag-row {
     display: flex;
     align-items: center;
     gap: 0.9rem;
@@ -488,6 +489,17 @@ p { line-height: 1.55; }
     gap: 0.75rem;
 }
 
+.menu-custom-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.75rem;
+}
+
+.menu-custom-grid label {
+    display: grid;
+    gap: 0.4rem;
+}
+
 .menu-list-media {
     position: relative;
     height: 180px;
@@ -758,6 +770,28 @@ p { line-height: 1.55; }
 .mini-cart-empty {
     color: var(--muted);
     margin: 0;
+}
+
+.floating-cart-button {
+    position: fixed;
+    right: 1rem;
+    bottom: 1rem;
+    z-index: 30;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.9rem 1.1rem;
+    background: linear-gradient(135deg, var(--brand), #ff9a3c);
+    color: #fff;
+    border-radius: 999px;
+    box-shadow: var(--shadow);
+}
+
+.review-image {
+    margin-top: 0.8rem;
+    border-radius: 18px;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
 }
 
 @keyframes shimmer {
