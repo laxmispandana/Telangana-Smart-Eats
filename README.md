@@ -1,4 +1,4 @@
-# FoodSprint
+# [FoodSprint](https://web-production-d28ec.up.railway.app/)
 
 FoodSprint is a Flask-based food ordering demo focused on Telangana restaurant discovery. The current app combines a seeded restaurant catalog, nearby search on OpenStreetMap, UPI QR checkout, diet-aware recommendations, and lightweight admin/staff operations tooling.
 
